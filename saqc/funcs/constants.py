@@ -20,14 +20,21 @@ from saqc.core import flagging
 from saqc.lib.rolling import removeRollingRamps
 from saqc.lib.tools import getFreqDelta, statPass
 from saqc.lib.ts_operators import varQC
-from saqc.lib.types import Float, Int, OffsetStr, SaQC, ValidatePublicMembers
+from saqc.lib.types import (
+    Float,
+    Int,
+    OffsetStr,
+    SaQC,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 
 
 class ConstantsMixin(ValidatePublicMembers):
     @flagging()
     def flagConstants(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         thresh: Float >= 0,
         window: OffsetStr | (Int >= 1),
         min_periods: Int >= 0 = 2,
@@ -80,7 +87,7 @@ class ConstantsMixin(ValidatePublicMembers):
     @flagging()
     def flagByVariance(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         window: OffsetStr,
         thresh: Float >= 0,
         maxna: (Int >= 0) | None = None,

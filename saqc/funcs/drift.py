@@ -11,7 +11,7 @@ from __future__ import annotations
 import functools
 import inspect
 import warnings
-from typing import TYPE_CHECKING, Callable, Literal, Optional, Sequence, Tuple
+from typing import Callable, Literal, Tuple
 
 import numpy as np
 import pandas as pd
@@ -32,6 +32,8 @@ from saqc.lib.types import (
     Int,
     OffsetStr,
     SaQC,
+    SaQCColumns,
+    SaQCFields,
     ValidatePublicMembers,
 )
 
@@ -53,7 +55,7 @@ class DriftMixin(ValidatePublicMembers):
     )
     def flagDriftFromNorm(
         self: SaQC,
-        field: Sequence[str],
+        field: SaQCFields,
         window: OffsetStr,  # TODO: this should be named 'freq'
         spread: Float >= 0,
         frac: Float[0, 1] = 0.5,
@@ -169,7 +171,7 @@ class DriftMixin(ValidatePublicMembers):
     )
     def flagDriftFromReference(
         self: SaQC,
-        field: Sequence[str],
+        field: SaQCFields,
         reference: str,
         freq: FreqStr,
         thresh: Float >= 0,
@@ -232,8 +234,8 @@ class DriftMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def correctDrift(
         self: SaQC,
-        field: str,
-        maintenance_field: str,
+        field: SaQCFields,
+        maintenance_field: SaQCColumns,
         model: CurveFitter | Literal["linear", "exponential"],
         cal_range: Int >= 0 = 5,
         **kwargs,
@@ -363,8 +365,8 @@ class DriftMixin(ValidatePublicMembers):
     @register(mask=["field", "cluster_field"], demask=["cluster_field"], squeeze=[])
     def correctRegimeAnomaly(
         self: SaQC,
-        field: str,
-        cluster_field: str,
+        field: SaQCFields,
+        cluster_field: SaQCColumns,
         model: CurveFitter,
         tolerance: OffsetStr | None = None,
         epoch: bool = False,
@@ -478,7 +480,7 @@ class DriftMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def correctOffset(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         max_jump: Float >= 0,
         spread: Float >= 0,
         window: OffsetStr,
@@ -542,8 +544,8 @@ class DriftMixin(ValidatePublicMembers):
     @flagging()
     def flagRegimeAnomaly(
         self: SaQC,
-        field: str,
-        cluster_field: str,
+        field: SaQCFields,
+        cluster_field: SaQCColumns,
         spread: Float >= 0,
         method: LINKAGE_STRING = "single",
         metric: Callable[
@@ -611,8 +613,8 @@ class DriftMixin(ValidatePublicMembers):
     @register(mask=["field", "cluster_field"], demask=["cluster_field"], squeeze=[])
     def assignRegimeAnomaly(
         self: SaQC,
-        field: str,
-        cluster_field: str,
+        field: SaQCFields,
+        cluster_field: SaQCColumns,
         spread: Float >= 0,
         method: LINKAGE_STRING = "single",
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: np.abs(

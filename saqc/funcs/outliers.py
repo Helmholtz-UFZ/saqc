@@ -445,7 +445,7 @@ class OutliersMixin(ValidatePublicMembers):
     @flagging()
     def flagByStray(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         window: OffsetStr | (Int >= 1) | None = None,
         min_periods: Int >= 1 = 11,
         iter_start: Float[0, 1] = 0.5,
@@ -524,7 +524,7 @@ class OutliersMixin(ValidatePublicMembers):
     )
     def flagMVScores(
         self: SaQC,
-        field: Sequence[str],
+        field: SaQCFields,
         trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
         alpha: Float[0, 1] = 0.05,
         n: Int >= 1 = 10,
@@ -758,7 +758,7 @@ class OutliersMixin(ValidatePublicMembers):
     @flagging()
     def flagRaise(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         thresh: float,
         raise_window: FreqStr,
         freq: FreqStr,
@@ -989,7 +989,7 @@ class OutliersMixin(ValidatePublicMembers):
     @flagging()
     def flagOffset(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         window: FreqStr,
         tolerance: (Float >= 0) | None = None,
         thresh: (Float >= 0) | None = None,
@@ -1192,7 +1192,7 @@ class OutliersMixin(ValidatePublicMembers):
     @flagging()
     def flagByGrubbs(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         window: FreqStr | (Int >= 0),
         alpha: Float[0, 1] = 0.05,
         min_periods: Int >= 1 = 8,

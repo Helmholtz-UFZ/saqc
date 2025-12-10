@@ -26,6 +26,7 @@ from saqc.lib.types import (
     NewSaQCFields,
     OffsetStr,
     SaQC,
+    SaQCColumns,
     SaQCFields,
     ValidatePublicMembers,
 )
@@ -166,7 +167,7 @@ class ToolsMixin(ValidatePublicMembers):
     def copyField(
         self: SaQC,
         field: SaQCFields,
-        target: str | list[str],
+        target: SaQCColumns | NewSaQCFields,
         overwrite: bool = False,
         **kwargs,
     ) -> SaQC:
@@ -192,7 +193,7 @@ class ToolsMixin(ValidatePublicMembers):
         return self
 
     @processing()
-    def dropField(self: SaQC, field: str, **kwargs) -> SaQC:
+    def dropField(self: SaQC, field: SaQCFields, **kwargs) -> SaQC:
         """
         Drops field from the data and flags.
         """
@@ -201,7 +202,7 @@ class ToolsMixin(ValidatePublicMembers):
         return self
 
     @processing()
-    def renameField(self: SaQC, field: str, new_name: str, **kwargs) -> SaQC:
+    def renameField(self: SaQC, field: SaQCFields, new_name: str, **kwargs) -> SaQC:
         """
         Rename field to the given name.
 
@@ -219,9 +220,9 @@ class ToolsMixin(ValidatePublicMembers):
     @register(mask=[], demask=[], squeeze=["field"])
     def selectTime(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         mode: Literal["periodic", "selection_field"],
-        selection_field: str | None = None,
+        selection_field: SaQCColumns | None = None,
         start: str | None = None,
         end: str | None = None,
         closed: bool = True,
@@ -349,7 +350,7 @@ class ToolsMixin(ValidatePublicMembers):
     )
     def plot(
         self: SaQC,
-        field: str | list[str],
+        field: SaQCFields,
         path: str | None = None,
         max_gap: OffsetStr | None = None,
         mode: Literal["subplots", "oneplot"] | str = "oneplot",

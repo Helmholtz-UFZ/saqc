@@ -78,7 +78,7 @@ class InterpolationMixin(ValidatePublicMembers):
     )
     def interpolateByRolling(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         window: OffsetStr | (Int > 0),
         func: Callable[[pd.Series], float] | str = "median",
         center: bool = True,
@@ -236,7 +236,7 @@ class InterpolationMixin(ValidatePublicMembers):
 
 def _shift(
     saqc: SaQC,
-    field: str,
+    field: SaQCFields,
     freq: str,
     method: Literal["fshift", "bshift", "nshift"] = "nshift",
     **kwargs,
@@ -286,7 +286,7 @@ def _shift(
 
 def _interpolate(
     saqc: SaQC,
-    field: str,
+    field: SaQCFields,
     freq: str,
     method: str,
     order: int | None,

@@ -19,6 +19,7 @@ from saqc.lib.types import (
     GenericFunction,
     NewSaQCFields,
     SaQC,
+    SaQCColumns,
     SaQCFields,
     ValidatePublicMembers,
 )
@@ -125,9 +126,9 @@ class GenericMixin(ValidatePublicMembers):
     )
     def processGeneric(
         self: SaQC,
-        field: SaQCFields,  # SaQCFields,
+        field: SaQCFields,
         func: GenericFunction,
-        target: SaQCFields | NewSaQCFields | None = None,
+        target: SaQCColumns | NewSaQCFields | None = None,
         dfilter: float = FILTER_ALL,
         **kwargs,
     ) -> SaQC:
@@ -202,7 +203,7 @@ class GenericMixin(ValidatePublicMembers):
         self: SaQC,
         field: SaQCFields,
         func: GenericFunction,
-        target: SaQCFields | NewSaQCFields | None = None,
+        target: SaQCColumns | NewSaQCFields | None = None,
         flag: float = BAD,
         **kwargs,
     ) -> SaQC:

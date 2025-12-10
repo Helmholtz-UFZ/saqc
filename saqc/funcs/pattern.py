@@ -22,6 +22,7 @@ from saqc.lib.types import (
     Int,
     OffsetStr,
     SaQC,
+    SaQCColumns,
     SaQCFields,
     ValidatePublicMembers,
 )
@@ -718,8 +719,8 @@ class PatternMixin(ValidatePublicMembers):
     @flagging()
     def flagPatternByDTW(
         self: SaQC,
-        field: str,
-        reference: str,
+        field: SaQCFields,
+        reference: SaQCColumns,
         max_distance: Float >= 0 = 0.0,
         normalize: bool = True,
         plot: bool = False,
