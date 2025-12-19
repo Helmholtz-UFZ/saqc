@@ -55,6 +55,8 @@ class RollingMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
+        Rolling window function application.
+
         Evaluate a function at all shifts of a fixed-size window ("rolling window application").
 
         The resulting values are assigned the worst flag present in the window from which
@@ -63,13 +65,17 @@ class RollingMixin(ValidatePublicMembers):
 
         Parameters
         ----------
-        window : int or str
+        window :
+            Rolling window size.
+
             Size of the rolling window. If an integer, it determines the window size as the number of periods it has to contain at every shift.
             If an offset string, it determines the window size as its constant temporal extension.
             For regularly sampled data, the period number is rounded down to an odd number in case
             ``center``  is True.
 
-        func : callable or str
+        func :
+            Aggregation function.
+
             Function to apply to window at each shift.
             Can either be a custom callable, expecting a ``pandas.Series`` object as its input,
             or a literal from the following list:
@@ -85,10 +91,12 @@ class RollingMixin(ValidatePublicMembers):
             - "kurt"   : Kurtosis
             - "count"  : Number of non-NA observations in the window
 
-        min_periods : int
+        min_periods :
+            Minimum population in rolling window.
             Minimum number of valid observations in the window required to calculate a value.
 
-        center : bool
+        center :
+            Assign function result to window center.
             If ``True``, function results are assigned to the timestamp at the center of the windows; if ``False``, they are assigned to the highest timestamp in the windows.
 
         Notes

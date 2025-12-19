@@ -50,8 +50,7 @@ class CurvefitMixin(ValidatePublicMembers):
         Fit a polynomial model to the data.
 
         The fit is calculated by fitting a polynomial of degree `order` to a data slice
-        of size `window`, centered on each timestamp. The result overwrites the field
-        unless a target is specified.
+        of extension `window`, centered around each timestamp.
 
         For regularly sampled data:
 
@@ -63,19 +62,22 @@ class CurvefitMixin(ValidatePublicMembers):
 
         Parameters
         ----------
-        window : int or str
-            Size of the fitting window. If an integer is passed, it represents the number
+        window :
+            Extension of the fitting window.
+
+            If an integer is passed, it represents the number
             of timestamps in each window. If an offset string is passed, it represents the
             window's temporal extent. The window is centered around the timestamp being fitted.
             For uniformly sampled data, an odd number of timestamps is always used to constitute a window (subtracted by 1,
             if the total is even).
 
-        order : int
-            Degree of the polynomial used for fitting.
+        order :
+            Degree of the fitted polynomial.
 
-        min_periods : int
-            Minimum number of timestamps in a window required to perform the fit.
-            Windows with fewer timestamps will produce NaNs. Passing 0 disables this
+        min_periods :
+            Minimum population for fitting windows.
+
+            Windows with fewer timestamps will result in NaN valued smoothing points. Passing 0 disables this
             check and may result in overfitting for sparse windows.
         """
         self._data, self._flags = _fitPolynomial(
@@ -100,24 +102,33 @@ class CurvefitMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Fits the data using the butterworth filter.
+        Filter and smooth data with Butterworth filter.
 
-        Note
-        ----
-        The data is expected to be regularly sampled.
+        Derive a smoothed version of the data by cutting off frequencies of its spectral representation that
+        exceed a cutoff frequency.
 
         Parameters
         ----------
         cutoff :
-            The cutoff-frequency, either an offset freq string, or expressed in multiples of the sampling rate.
+            The cutoff-frequency.
+
+            Has to be either an offset freq string, or be expressed in multiples of the sampling rate.
 
         nyq :
-            The niquist-frequency. expressed in multiples if the sampling rate.
+            The niquist-frequency.
+
+            expressed in multiples if the sampling rate.
 
         fill_method :
-            Fill method to be applied on the data before filtering (butterfilter cant
-            handle ''np.nan''). See documentation of pandas.Series.interpolate method for
+            Fill method applied pre-filtering.
+
+            Since butterworth filtering cant handle `np.nan` values or irregularly sampled data, an imputation method
+            for gaps should be assigned here. See documentation of pandas.Series.interpolate method for
             details on the methods associated with the different keywords.
+
+        Note
+        ----
+        The data is expected to be regularly sampled.
         """
 
         self._data[field] = butterFilter(
@@ -141,7 +152,7 @@ class CurvefitMixin(ValidatePublicMembers):
         **kwargs,
     ):
         """
-        Fits the data by reconstructing it with the Moment Foundational Timeseries Model (MomentFM).
+        Moment Foundational Timeseries Model (MomentFM).
 
         The function applies MomentFM [1] in its reconstruction mode on a window of size `context`, striding through the data
         with step size `context`/`ratio`
@@ -149,13 +160,19 @@ class CurvefitMixin(ValidatePublicMembers):
         Parameters
         ----------
         ratio :
+            Sample size for value reconstruction.
+
             The number of samples generated for any values reconstruction. Must be a divisor of `context`.
             Effectively controlls the stride-width of the reconstruction window through the data.
 
         context :
-            size of the context window with regard to wich any value is reconstructed.
+            Reconstruction context.
+
+            Size of the context window with regard to wich any value is reconstructed.
 
         agg :
+            Sample aggregation method.
+
             How to aggregate the different reconstructions for the same value.
             * 'center': use the value that was constructed in a window centering around the origin value
             * 'mean': assign the mean over all reconstructed values
@@ -163,6 +180,7 @@ class CurvefitMixin(ValidatePublicMembers):
             * 'std': assign the standard deviation over all reconstructed values
 
         model_spec :
+            Model specification.
             Dictionary with the fields:
             * `pretrained_model_name_or_path`
             * `revision`

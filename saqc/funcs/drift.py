@@ -67,34 +67,47 @@ class DriftMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Flags data that deviates from an avarage data course.
+        Flags Deviation from central moment.
 
         "Normality" is determined in terms of a maximum spreading distance,
         that members of a normal group must not exceed. In addition, only a group is considered
-        "normal" if it contains more then `frac` percent of the variables in "field".
+        "normal" if it contains more than `frac` percent of the variables in "field".
 
         See the Notes section for a more detailed presentation of the algorithm
 
         Parameters
         ----------
         window :
-            Frequency, that split the data in chunks.
+            Chunk size.
+
+            The data will be broken up into chunks of size `window` and separately, on any of those chunks,
+            the flagging statistics will be calculated.
 
         spread :
-            Maximum spread allowed in the group of *normal* data. See Notes section for more details.
+            Expected spreading maximum.
+
+            Given a set of timeseries representing the same variable, this determines the maximum spreading expected from those.
+            See Notes section for more details.
 
         frac :
-            Fraction defining the normal group. Use a value from the interval [0,1].
+            Portion threshold for normal group.
+
+            The group identified as exposing normal behavior, must contain `frac` percentage of the targeted variables
+            to be valid and trigger flagging of the variables not included.
             The higher the value, the more stable the algorithm will be. For values below
             0.5 the results are undefined.
 
-        metric : default cityblock
+        metric :
+            Distance metric.
+
             Distance function that takes two arrays as input and returns a scalar float.
             This value is interpreted as the distance of the two input arrays.
             Defaults to the `averaged manhattan metric` (see Notes).
 
         method :
-            Linkage method used for hierarchical (agglomerative) clustering of the data.
+            Linkage method.
+
+            The linkage method used for hierarchical (agglomerative) clustering of the data.
             `method` is directly passed to ``scipy.hierarchy.linkage``. See its documentation [1] for
             more details. For a general introduction on hierarchical clustering see [2].
 
@@ -182,22 +195,30 @@ class DriftMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Flags data that deviates from a reference course. Deviation is measured by a
-        custom distance function.
+        Flags data that deviates from a reference.
+
+        Deviation is measured by a custom distance function.
 
         Parameters
         ----------
         freq :
-            Frequency, that split the data in chunks.
+            Chunk size.
 
         reference :
-            Reference variable, the deviation is calculated from.
+            Reference variable.
+
+            Deviation is calculated as deviation/distance from the timeseries registered under `reference` to
+            the `saqc` object.
 
         thresh :
-            Maximum deviation from reference.
+            Maximum distance from reference.
 
-        metric : default cityblock
-            Distance function. Takes two arrays as input and returns a scalar float.
+            Data with distance to `reference`, that exceeds `thresh` according to `metric`, is flagged.
+
+        metric :
+            Distance function.
+
+            Takes two arrays as input and returns a scalar float.
             This value is interpreted as the mutual distance of the two input arrays.
             Defaults to the `averaged manhattan metric` (see Notes).
 
@@ -241,19 +262,22 @@ class DriftMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        The function corrects drifting behavior.
+        Correct model defined drifts.
 
         See the Notes section for an overview over the correction algorithm.
 
         Parameters
         ----------
         maintenance_field :
-            Column holding the support-points information.
+            Support-points variable.
+
             The data is expected to have the following form:
             The index of the series represents the beginning of a maintenance
             event, wheras the values represent its endings.
 
         model :
+            Correction model.
+
             A model function describing the drift behavior, that is to be corrected.
             Either use built-in exponential or linear drift model by passing a string,
             or pass a custom callable. The model function must always contain the keyword
@@ -263,6 +287,8 @@ class DriftMixin(ValidatePublicMembers):
             signature. See the Notes section for an extensive description.
 
         cal_range :
+            Calibration range.
+
             Number of values to calculate the mean of, for obtaining the value level directly
             after and directly before a maintenance event. Needed for shift calibration.
 
@@ -373,6 +399,8 @@ class DriftMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
+        Regimen wise model fitting.
+
         Function fits the passed model to the different regimes in data[field] and tries to correct
         those values, that have assigned a negative label by data[cluster_field].
 
@@ -389,10 +417,14 @@ class DriftMixin(ValidatePublicMembers):
         Parameters
         ----------
         cluster_field :
+            Cluster labels variable.
+
             A string denoting the field in data, holding the cluster label for the data you want
             to correct.
 
         model :
+            Model function.
+
             The model function to be fitted to the regimes.
             It must be a function of the form :math:`f(x, *p)`, where :math:`x` is the
             ``numpy.array`` holding the independent variables and :math:`p` are the model
@@ -401,12 +433,16 @@ class DriftMixin(ValidatePublicMembers):
             seconds from epoch, or it will be just seconds, counting the regimes length.
 
         tolerance :
+            Ignored window of initial and final values in chunks.
+
             If an offset string is passed, a data chunk of length `offset` right at the
             start and right at the end is ignored when fitting the model. This is to
             account for the unreliability of data near the changepoints of regimes.
             Defaults to None.
 
         epoch :
+            Use epoch or seconds.
+
             If True, use "seconds from epoch" as x input to the model func, instead of
             "seconds from regime start".
 
@@ -489,32 +525,41 @@ class DriftMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
+        Correct offsets to normal value level.
+
         Parameters
         ----------
         max_jump :
-            when searching for changepoints in mean - this is the threshold a mean difference in the
+            Separating threshold for offsets.
+
+            When searching for changepoints in mean - this is the threshold a mean difference in the
             sliding window search must exceed to trigger changepoint detection.
 
         spread :
+            Divergence threshold for offsets.
+
             threshold denoting the maximum, regimes are allowed to abolutely differ in their means
             to form the "normal group" of values.
 
         window :
+            Context size for mean value levels.
+
             Size of the adjacent windows that are used to search for the mean changepoints.
 
         min_periods :
+            Minimum population size for windows.
+
             Minimum number of periods a search window has to contain, for the result of the changepoint
             detection to be considered valid.
 
         tolerance :
+            Neglected data chunks at window bounds.
+
             If an offset string is passed, a data chunk of length `offset` right from the
             start and right before the end of any regime is ignored when calculating a regimes mean for data correcture.
             This is to account for the unrelyability of data near the changepoints of regimes.
 
         """
-        # Hint:
-        #   - This whole function does not set any flags
-        #   - Checking is delegated to the called functions
         cluster_field = field + "_CPcluster"
         qc = self.copyField(field, cluster_field)
         qc.data[cluster_field] = _getChangePoints(
@@ -573,20 +618,30 @@ class DriftMixin(ValidatePublicMembers):
         Parameters
         ----------
         cluster_field :
+            Cluster labels variable.
+
             Column in data, holding the cluster labels for the samples in field.
             (has to be indexed equal to field)
 
         spread :
-            A threshold denoting the value level, up to wich clusters a agglomerated.
+            Agglomeration supremum.
+
+            A threshold denoting the value level, up to wich clusters are agglomerated.
 
         method :
+            Linkage method used.
+
             The linkage method for hierarchical (agglomerative) clustering of the variables.
 
         metric :
+            Metric of regime distances.
+
             A metric function for calculating the dissimilarity between 2 regimes.
             Defaults to the absolute difference in mean.
 
         frac :
+            Minimum variable portion for normal groups.
+
             The minimum percentage of samples, the "normal" group has to comprise to
             actually be the normal group. Must be in the closed interval `[0,1]`,
             otherwise a ValueError is raised.
@@ -642,20 +697,30 @@ class DriftMixin(ValidatePublicMembers):
         Parameters
         ----------
         cluster_field :
+            Cluster labels variable.
+
             Column in data, holding the cluster labels for the samples in field.
             (has to be indexed equal to field)
 
         spread :
-            A threshold denoting the value level, up to wich clusters a agglomerated.
+            Agglomeration supremum.
+
+            A threshold denoting the value level, up to wich clusters are agglomerated.
 
         method :
+            Linkage method used.
+
             The linkage method for hierarchical (agglomerative) clustering of the variables.
 
         metric :
+            Metric of regime distances.
+
             A metric function for calculating the dissimilarity between 2 regimes.
             Defaults to the absolute difference in mean.
 
         frac :
+            Minimum variable portion for normal groups.
+
             The minimum percentage of samples, the "normal" group has to comprise to
             actually be the normal group. Must be in the closed interval `[0,1]`,
             otherwise a ValueError is raised.

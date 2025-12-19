@@ -136,12 +136,16 @@ class OutliersMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Flag values where the Local Outlier Factor (LOF) exceeds cutoff.
+        Local Outlier Factor.
+
+        Flag values where the Local Outlier Factor (LOF) exceeds a given cutoff.
 
         Parameters
         ----------
         n :
-            Number of neighbors to be included into the LOF calculation.
+            Nearest neighbors number.
+
+            Number of nearest neighbors to be included into the LOF calculation.
             Defaults to ``20``, which is a
             value found to be suitable in the literature.
 
@@ -155,6 +159,8 @@ class OutliersMixin(ValidatePublicMembers):
               Higher values greatly increase numerical costs.
 
         thresh :
+            Cutoff threshold.
+
             The threshold for flagging the calculated LOF. A LOF of around
             ``1`` is considered normal and most likely corresponds to
             inlier points.
@@ -165,9 +171,13 @@ class OutliersMixin(ValidatePublicMembers):
               to flagging the scores with a modified 3-sigma rule.
 
         algorithm :
+            NN-algorithm.
+
             Algorithm used for calculating the :py:attr:`n`-nearest neighbors.
 
         p :
+            Minkowski degree.
+
             Degree of the metric ("Minkowski"), according to which the
             distance to neighbors is determined. Most important values are:
 
@@ -235,7 +245,7 @@ class OutliersMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Flag anomalous values using the *Univariate Local Outlier Factor (UniLOF)* method.
+        Univariate outlier detection, based on LOF.
 
         This function wraps a standard LOF implementation and provides a simplified,
         parameter-minimal interface for univariate outlier detection.
@@ -244,36 +254,56 @@ class OutliersMixin(ValidatePublicMembers):
 
         Parameters
         ----------
-        n : int
+        n :
+            Neighborhood extension.
+
             Number of samples to include in the LOF neighborhood (the ``n`` nearest neighbors).
 
-        thresh : {'auto', float}, optional
-            Outlier-factor cutoff. Values with LOF scores greater than this threshold are flagged.
+        thresh :
+            Outlier-factor cutoff.
 
-        probability : float, optional
-            Outlier-probability cutoff. Values with probabilities greater than this threshold are flagged.
+            Values with LOF scores greater than this threshold are flagged.
 
-        corruption : float or int, optional
-            Portion of data assumed to be anomalous, either as a fraction in ``[0, 1]`` or
+        probability :
+            Outlier-probability cutoff.
+
+            Values with probabilities greater than this threshold are flagged.
+
+        corruption :
+            Maximum portion of anomalous data.
+
+            Either as a fraction in ``[0, 1]`` or
             as an integer specifying the number of anomalous samples.
 
-        algorithm : {'ball_tree', 'kd_tree', 'brute', 'auto'}
-            Nearest-neighbor algorithm used for LOF.
+        algorithm :
+            Nearest-neighbor assesment algorithm.
 
-        p : int
-            Degree of the Minkowski metric used for neighbor distances (e.g., ``1`` Manhattan, ``2`` Euclidean).
+        p :
+            Minkowski degree for NN metric.
 
-        density : {'auto', float}
-            How to derive temporal density. ``'auto'`` uses the median absolute step size; a ``float`` sets a fixed increment.
+            Degree of the Minkowski metric used for neighbor distance calculation (e.g., ``1`` Manhattan, ``2`` Euclidean).
 
-        fill_na : bool
+        density :
+            Time-axis differential form.
+
+            How to derive temporal density. ``'auto'`` uses the median absolute step size, while passing a `float` sets
+            a fixed increment.
+
+        fill_na :
+            Impute NaN values.
+
             If ``True``, fill NaNs by linear interpolation before LOF calculation.
 
-        slope_correct : bool
+        slope_correct :
+            Correction for high derivative regimes.
+
             If ``True``, suppress flagging of groups of points, that seem to correspond to steep value slopes rather than to actual outliers.
 
-        min_offset : float, optional
-            Minimum jump in values before and after an outlier cluster for it to be flagged.
+        min_offset :
+            Isolation threshold for outlier clusters.
+
+            Minimum jump in values before and after an outlier cluster, needed to be registered in order for the cluster
+            to be flagged.
 
         Notes
         -----
@@ -422,15 +452,17 @@ class OutliersMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Flag values outside the closed interval [`min`, `max`].
+        Flag values that exceed fixed bound.
+
+        The function flags values that are not part of the closed interval [`min`, `max`].
 
         Parameters
         ----------
         min : float
-            Lower bound for valid data.
+            Lower bound.
 
         max : float
-            Upper bound for valid data.
+            Upper bound.
         """
         # using .values is much faster
         if min is None:
@@ -454,7 +486,7 @@ class OutliersMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Flag outliers in 1-dimensional (score) data using the STRAY Algorithm.
+        Flag outliers with the STRAY Algorithm.
 
         For more details about the algorithm please refer to [1].
 
@@ -462,8 +494,10 @@ class OutliersMixin(ValidatePublicMembers):
         ----------
 
         window :
+            Window size for STRAY.
+
             Determines the segmentation of the data into partitions, the
-            kNN algorithm is applied onto individually.
+            STRAY algorithm is applied onto individually.
 
             * ``None``: Apply Scoring on whole data set at once
             * ``int``: Apply scoring on successive data chunks of periods
@@ -472,16 +506,22 @@ class OutliersMixin(ValidatePublicMembers):
               temporal extension matching the passed offset string
 
         min_periods :
+            Minimum population per window.
+
             Minimum number of periods per partition that have to be present
             for a valid outlier detection to be made in this partition
 
         iter_start :
-            Float in ``[0, 1]`` that determines which percentage of data
+            Portion of normal data.
+
+            Determines which percentage of data
             is considered "normal". ``0.5`` results in the stray algorithm
             to search only the upper 50% of the scores for the cut off
             point. (See reference section for more information)
 
         alpha :
+            Significance level.
+
             Level of significance by which it is tested, if a score might
             be drawn from another distribution than the majority of the data.
 
@@ -540,6 +580,8 @@ class OutliersMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
+        Multivariate outlier detection.
+
         The algorithm implements a 3-step outlier detection procedure for
         simultaneously flagging of higher dimensional data (dimensions > 3).
 
@@ -553,28 +595,40 @@ class OutliersMixin(ValidatePublicMembers):
         Parameters
         ----------
         trafo :
+            Variable transformation.
+
             Transformation to be applied onto every column before scoring. For more
             fine-grained control, the data could also be transformed before
             :py:meth:`~saqc.SaQC.flagMVScores` is called.
 
         alpha :
+            STRAY significance level.
+
             Level of significance by which it is tested, if an observations score might
             be drawn from another distribution than the majority of the data.
 
         n :
-            Number of neighbors included in the scoring process for every datapoint.
+            Number of nearest neighbors.
+
+            Number of nearest neighbors included in the scoring process for every datapoint.
 
         func :
+            Nearest neighbors distance aggregation.
+
             Function that aggregates a value's k-smallest distances, returning a
             scalar score.
 
         iter_start :
+            Portion of normal data per window.
+
             Value in ``[0,1]`` that determines which percentage of data is considered
             "normal". 0.5 results in the threshing algorithm to search only the upper
             50% of the scores for the cut-off point. (See reference section for more
             information)
 
         window :
+            STRAY window size.
+
             Only effective if :py:attr:`threshing` is set to ``'stray'``. Determines
             the size of the data partitions, the data is decomposed into. Each
             partition is checked seperately for outliers. Either given as an Offset
@@ -584,22 +638,30 @@ class OutliersMixin(ValidatePublicMembers):
             equals the whole data.
 
         min_periods :
+            Minimum population per window.
+
             Only effective if :py:attr:`threshing` is set to ``'stray'`` and
             :py:attr:`partition` is an integer. Minimum number of periods per
             :py:attr:`partition` that have to be present for a valid outlier
             detection to be made in this partition.
 
         stray_range :
+            STRAY reduction context.
+
             If not ``None``, it is tried to reduce the stray result onto single
             outlier components of the input :py:attr:`field`. The offset string
-            denotes the range of the temporal surrounding to include into the MAD
+            denotes the range of the temporal surrounding to include into a median based z score
             testing while trying to reduce flags.
 
         drop_flagged :
+            Filter STRAY reduction Context.
+
             Only effective when :py:attr:`stray_range` is not ``None``. Whether or
             not to drop flagged values from the temporal surroundings.
 
         thresh :
+            STRAY reduction threshold.
+
             Only effective when :py:attr:`stray_range` is not ``None``. The
             'critical' value, controlling wheather the MAD score is considered
             referring to an outlier or not. Higher values result in less rigid
@@ -607,6 +669,8 @@ class OutliersMixin(ValidatePublicMembers):
             literature.
 
         min_periods_r :
+            Minimum population for STRAY reduction.
+
             Only effective when :py:attr:`stray_range` is not ``None``. Minimum
             number of measurements necessary in an interval to actually perform the
             reduction step.
@@ -998,7 +1062,7 @@ class OutliersMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Flag offsetting value courses.
+        Flag offsetted groups of values.
 
         This test classifies values or value sequences as outliers by detecting
         abrupt rises and subsequent returns to the original value level within a given amount of time. Both single-value
@@ -1015,21 +1079,29 @@ class OutliersMixin(ValidatePublicMembers):
 
         Parameters
         ----------
-        tolerance : float
-            Maximum allowed difference between the value preceding and succeeding
-            an offset sequence to trigger flagging (condition 4).
+        window :
+            Offset group size (maximum).
 
-        window : str
             Maximum temporal length allowed for an offset sequence to trigger flagging
             (condition 5). Integer-defined windows are only allowed for regularly
             sampled timestamps.
 
-        thresh : float or None
+        tolerance :
+            Maximum difference between offset footpoints.
+
+            Maximum allowed difference between the value preceding and succeeding
+            an offset sequence to trigger flagging (condition 4).
+
+        thresh :
+            Offsetting threshold.
+
             Minimum absolute difference between a value and its successors to consider
             the successors a possible anomalous offset sequence (condition 1). If None, this
             condition is ignored.
 
-        thresh_relative : float or None
+        thresh_relative :
+            Relative offsetting threshold.
+
             Minimum relative change between a value and its successors to consider the
             successors a possible anomalous offset sequence (conditions 2 and 3). If None,
             this condition is ignored.
@@ -1210,6 +1282,7 @@ class OutliersMixin(ValidatePublicMembers):
         ----------
         window :
             Size of the testing window.
+
             If an integer, the fixed number of observations used for each window.
             If an offset string the time period of each window.
 
@@ -1313,38 +1386,49 @@ class OutliersMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Uses standard score cutoffs to detect outliers. (For example, "*3*-sigma rule".)
+        Scattering (ZScoring) based outlier detection.
 
+        Uses standard score cutoffs to detect outliers. (For example, "*3*-sigma rule".)(
         The function supports both *standard* and *modified* Z-score definitions. To handle
         non-stationary data, the calculation can be applied within a rolling window. A minimum
         residual value may be required to avoid over-flagging in low-variance segments.
 
         Parameters
         ----------
-        method : {"standard", "modified"}
-            Which scoring method to use:
+        method :
+            Which scoring method to use.
 
             * ``"standard"`` — mean as expectation, standard deviation as scaling factor.
             * ``"modified"`` — median as expectation, median absolute deviation (MAD) as scaling factor.
 
-        window : int or str, optional
-            Size of the scoring window. Either an integer (number of periods) or an offset
+        window :
+            Size of the scoring window.
+
+            Either an integer (number of periods) or an offset
             string (time span). If ``None`` (default), all data share a single window.
 
-        thresh : float
-            Cutoff value. Points with absolute Z-scores larger than this threshold are flagged.
+        thresh :
+            Cutoff value.
 
-        min_residuals : float, optional
+            Points with absolute Z-scores larger than this threshold are flagged.
+
+        min_residuals :
+            Distance to mean threshold.
+
             Minimum absolute distance a value must be apart from its context windows expectation, in order for the Z scoring test to be applied.
 
-        min_periods : int, optional
+        min_periods :
+            Minimum Population per window.
+
             Minimum number of valid observations that is required to be contained in a values context window, in order for the Z scoring test to be applied.
 
-        center : bool
+        center :
+            Center windows around scored values.
+
             If ``True`` (default), the tested value is centered in its context window; otherwise, it is the window’s last value.
 
-        axis : {0, 1}
-            Axis along which to compute scores:
+        axis :
+            Axis along which to compute scores.
 
             * ``0`` (default) — compute along the time axis only (separate windows for all fields).
             * ``1`` — compute along time and data axis (windows are 2 dimensional and span over all fields).

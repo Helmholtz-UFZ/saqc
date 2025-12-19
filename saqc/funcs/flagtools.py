@@ -41,7 +41,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
     @flagging()
     def flagDummy(self: SaQC, field: SaQCFields, **kwargs) -> SaQC:
         """
-        Function does nothing but returning data and flags.
+        Pass on data and flags.
 
         Parameters
         ----------
@@ -52,16 +52,10 @@ class FlagtoolsMixin(ValidatePublicMembers):
     @register(mask=[], demask=[], squeeze=["field"])
     def forceFlags(self: SaQC, field: SaQCFields, flag: float = BAD, **kwargs) -> SaQC:
         """
-        Set whole column to a flag value.
+        Assign specific flag to all periods.
 
         Parameters
         ----------
-
-        See also
-        --------
-        clearFlags : set whole column to UNFLAGGED
-        flagUnflagged : set flag value at all unflagged positions
-
         """
         self._flags[:, field] = flag
         return self
@@ -69,19 +63,12 @@ class FlagtoolsMixin(ValidatePublicMembers):
     @register(mask=[], demask=[], squeeze=["field"])
     def clearFlags(self: SaQC, field: SaQCFields, **kwargs) -> SaQC:
         """
-        Assign the flag UNFLAGGED to all timestamps.
+        Assign UNFLAGGED to all periods.
 
         Notes
         -----
-        This function ignores the ``dfilter`` keyword, because the data
-        is not relevant for processing.
-        A warning is triggered if the ``flag`` keyword is given, because
-        the flags are always set to ``UNFLAGGED``.
+        Function ignores ``dfilter`` keyword.
 
-        See Also
-        --------
-        forceFlags : Assign a specific flag value to all timestamps.
-        flagUnflagged : Assign a specific flag value to all timestamps that have no flag value assigned.
         """
         # NOTE: do we really need this?
         if "flag" in kwargs:
@@ -96,17 +83,11 @@ class FlagtoolsMixin(ValidatePublicMembers):
         self: SaQC, field: SaQCFields, flag: float = BAD, **kwargs
     ) -> SaQC:
         """
-        Assign a `flag` to all timestamps.
+        Assign `flag` to all UNFLAGGED periods.
 
         Notes
         -----
-        This function ignores the ``dfilter`` keyword, because the
-        data is not relevant for processing.
-
-        See also
-        --------
-        clearFlags : assign UNFLAGGED to all timestamps
-        forceFlags : Assign a specific flag value to all timestamps.
+        Function ignores the ``dfilter`` keyword.
         """
         unflagged = self._flags[field].isna() | (self._flags[field] == UNFLAGGED)
         self._flags[unflagged, field] = flag
@@ -122,13 +103,15 @@ class FlagtoolsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Include flags listed in external data.
+        Assign scheduled flags.
 
         Parameters
         ----------
-
         data :
-            Determines which timestamps to set flags at, depending on the passed type:
+            Flags schedule.
+
+            Determines which timestamps to set flags at.
+            Depending on the passed type:
 
             * 1-d `array` or `List` of timestamps or `pandas.Index`: flag `field` with `flag` at every timestamp in `f_data`
             * 2-d `array` or List of tuples: for all elements `t[k]` out of f_data:
@@ -140,7 +123,9 @@ class FlagtoolsMixin(ValidatePublicMembers):
             * 2-d `array` or List of tuples: for all elements `t[k]` out of f_data:
               flag `field` with `flag` at every timestamp in between `t[k][0]` and `t[k][1]`
         override :
-            determines if flags shall be assigned although the value in question already has a flag assigned.
+            Override existing flags.
+
+            Determines if flags shall be assigned although the value in question already has a flag assigned.
         """
         to_flag = pd.Series(False, index=self._data[field].index)
 
@@ -199,7 +184,9 @@ class FlagtoolsMixin(ValidatePublicMembers):
         Parameters
         ----------
         mdata :
-            Determines which values or intervals will be flagged. Supported input types:
+            Determines which values or intervals will be flagged.
+
+            Supported input types:
 
             * ``pd.Series``: Needs a datetime index and values of type:
 
@@ -390,7 +377,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Transfer flags from one field to another.
+        Transfer flags between variables.
 
         Flags present at timestamps in the source field(s) are also assigned to that same timestamps in the target field(s).
 
@@ -398,11 +385,17 @@ class FlagtoolsMixin(ValidatePublicMembers):
 
         Parameters
         ----------
-        squeeze : bool
-            If True, compress the history into a single column, losing function-specific flag information.
+        squeeze :
+            Append history or aggregation.
 
-        overwrite : bool
-            If True, existing flags in the target field are overwritten.
+            If True, flagging history of `field` is compressed and function-specific flag information is lost,
+            before it gets appended to `target`.
+            If False, flagging history of `field` is appended to `target`.
+
+        overwrite :
+            Override target flags.
+
+            If True, existing flags in the target field are overridden.
 
         Examples
         --------
@@ -510,19 +503,22 @@ class FlagtoolsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Propagate already assigned flags along the date axis.
+        Propagate flags along date axis.
 
         Extent and direction of propagation can be controlled through parameters ``window`` and ``method``.
 
         Parameters
         ----------
-        window : int or str
-            Size of the repetition window. An integer defines the exact number
+        window :
+            Extension of the propagation.
+
+            An integer defines the exact number
             of periods to propagate, while a string is interpreted as a time
             offset.
 
-        method : {"ffill", "bfill"}
-            Direction of propagation:
+        method :
+            Direction of the propagation.
+
             * ``ffill`` — propagate flag to subsequent values
             * ``bfill`` — propagate flag to preceding values
 
@@ -631,7 +627,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Logical AND operation for Flags.
+        Combine flags via AND operation.
 
         Flag the variable(s) `field` at every period, at wich `field` in all of the saqc objects in
         `group` is flagged.
@@ -641,7 +637,10 @@ class FlagtoolsMixin(ValidatePublicMembers):
         Parameters
         ----------
         group:
-            A collection of ``SaQC`` objects. Flag checks are performed on all ``SaQC`` objects
+            AND operands.
+
+            A collection of ``SaQC`` objects.
+            Flag checks are performed on all ``SaQC`` objects
             based on the variables specified in ``field``. Whenever all monitored variables
             are flagged, the associated timestamps will receive a flag.
 
@@ -729,7 +728,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Logical OR operation for Flags.
+        Combine flags via OR operation.
 
         Flag the variable(s) `field` at every period, at wich `field` is flagged in at least one of the saqc objects
         in `group`.
@@ -739,6 +738,8 @@ class FlagtoolsMixin(ValidatePublicMembers):
         Parameters
         ----------
         group:
+            OR operands.
+
             A collection of ``SaQC`` objects. Flag checks are performed on all ``SaQC`` objects
             based on the variables specified in :py:attr:`field`. Whenever any of monitored variables
             is flagged, the associated timestamps will receive a flag.

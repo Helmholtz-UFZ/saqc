@@ -87,18 +87,22 @@ class BreaksMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Find and flag temporally isolated groups of data.
+        Flag groups of data that are surrounded by data gaps.
 
         The function flags groups of values that are surrounded by sufficiently large
         data gaps. A data gap is a timespan containing no valid data. (Data is valid if it is not `NaN` and if it is not assigned a flag with a level higher than the functions `flag` value).
 
         Parameters
         ----------
-        gap_window : str
-            Minimum gap size required before and after a data group to consider it
-            isolated. See conditions (2) and (3) below.
+        gap_window :
+            Minimum missing data extension that qualifies a gap.
 
-        group_window : str
+            Minimum gap size required before and after a data group to consider it isolated.
+            See conditions (2) and (3) below.
+
+        group_window :
+            Maximum data extension that qualifies an isolated group.
+
             Maximum size of a data chunk to consider it a candidate for an isolated group.
             Data chunks larger than this are ignored. This does not include the possible
             gaps surrounding it. See condition (1) below.
@@ -162,16 +166,21 @@ class BreaksMixin(ValidatePublicMembers):
 
         Parameters
         ----------
-        thresh : float
-            Threshold by which the mean of data must jump to trigger flagging.
+        thresh :
+            Threshold for value change, to qualify as jump/drop.
 
-        window : str
-            Size of the two rolling windows. Determines the number of timestamps used
-            for calculating the mean in each window. Windows should be chosen large enough to
+            The Threshold by which the mean of data must differ in two adjacent windows to trigger flagging.
+
+        window :
+            Context size for value level mean.
+
+            Determines the number of timestamps used for calculating the mean in each window. Windows should be chosen large enough to
             obtain a reliable mean. But not too large as well, since the window size implies a lower bound for the detection resolution.
             Jumps exceeding `thresh` but being apart from each other by less than 3/4 of the window size may not be detected reliably.
 
-        min_periods : int
+        min_periods :
+            Minimum population size required in every window.
+
             Minimum number of timestamps in `window` required to calculate a valid mean. If no valid mean for the window can be calculated, flagging wont be triggered for the associated change point.
 
         Notes

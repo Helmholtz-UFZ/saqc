@@ -29,9 +29,9 @@ class ResidualsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Fits a polynomial model to the data and calculate the residuals.
+        Residuals from polynomial fit.
 
-        The residual  is calculated by fitting a polynomial of degree `order` to a data
+        The residuals are calculated by fitting a polynomial of degree `order` to a data
         slice of size `window`, that has x at its center.
 
         Note, that calculating the residuals tends to be quite costly, because a function
@@ -52,6 +52,8 @@ class ResidualsMixin(ValidatePublicMembers):
         Parameters
         ----------
         window :
+            Extension of the fitting window.
+
             The size of the window you want to use for fitting. If an integer is passed,
             the size refers to the number of periods for every fitting window. If an
             offset string is passed, the size refers to the total temporal extension. The
@@ -59,9 +61,11 @@ class ResidualsMixin(ValidatePublicMembers):
             timeseries the period number will be casted down to an odd number if even.
 
         order :
-            The degree of the polynomial used for fitting
+            Degree of the fitted polynomial.
 
         min_periods :
+            Minimum population for fitting windows.
+
             The minimum number of periods, that has to be available in every values
             fitting surrounding for the polynomial fit to be performed. If there are not
             enough values, np.nan gets assigned. Default (0) results in fitting
@@ -94,27 +98,33 @@ class ResidualsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Calculate the diff of a rolling-window function and the data.
+        Residuals from sliding window fit.
 
         Note, that the data gets assigned the worst flag present in the original data.
 
         Parameters
         ----------
         window :
-            The size of the window you want to roll with. If an integer is passed, the size
+            Rolling window size.
+
+            If an integer is passed, the size
             refers to the number of periods for every fitting window. If an offset string
             is passed, the size refers to the total temporal extension. For regularly
             sampled timeseries, the period number will be casted down to an odd number if
             ``center=True``.
 
-        func : default mean
-            Function to roll with.
+        func :
+            Aggregation function.
+
+            Function that aggregates values from any rolling window.
 
         min_periods :
-            The minimum number of periods to get a valid value
+            Minimum population in rolling window.
+
+            If a window has less than `min_periods` valid (not NaN) values, there wont be an aggregation calculated.
 
         center :
-            If True, center the rolling window.
+            Assign aggregation result to window center.
         """
         # HINT: checking in  _roll
         orig = self._data[field].copy()

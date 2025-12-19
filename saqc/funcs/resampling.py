@@ -307,9 +307,9 @@ class ResamplingMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Resample data points and flags to a regular frequency.
+        Sample data at uniform sampling rate.
 
-        The data will be sampled to regular (equidistant) timestamps.
+        The data will be resampled at equidistant timestamps.
         Sampling intervals therefore get aggregated with a function, specified by
         ``func``, the result is projected to the new timestamps using
         ``method``. The following methods are available:
@@ -332,20 +332,28 @@ class ResamplingMixin(ValidatePublicMembers):
         Parameters
         ----------
         freq :
-            Offset string. Sampling rate of the target frequency grid.
+            New sampling rate.
 
         func :
-            Aggregation function. See notes for performance considerations.
+            Aggregation function.
+
+            See notes for performance considerations.
 
         method :
+            Resampling intervals.
+
             Specifies which intervals to be aggregated for a certain timestamp. (preceding,
             succeeding or "surrounding" interval). See description above for more details.
 
         maxna :
+            Limit for number of NaN values.
+
             Maximum number of allowed ``NaN``s in a resampling interval. If exceeded, the
             aggregation of the interval evaluates to ``NaN``.
 
         maxna_group :
+            Limit for number of consecutive values.
+
             Same as `maxna` but for consecutive NaNs.
         """
 
@@ -424,7 +432,7 @@ class ResamplingMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Change a variables index.
+        Resample data at new index.
 
         Simultaneously changes the indices of the data, flags and the history assigned to `field`.
 
@@ -432,7 +440,7 @@ class ResamplingMixin(ValidatePublicMembers):
         ----------
 
         index :
-            Determines the new index.
+            New index.
 
             * If an `offset` string: new index will range from start to end of the original index of
               `field`, exhibting a uniform sampling rate of `idx`
@@ -441,6 +449,8 @@ class ResamplingMixin(ValidatePublicMembers):
             * If an `pd.index` object is passed, that will be the new index of `field`.
 
         method :
+           Reindexing method.
+
            Determines which of the origins indexes periods to comprise into the calculation of a new flag and a new data value at
            any period of the new index.
 
@@ -474,19 +484,27 @@ class ResamplingMixin(ValidatePublicMembers):
            * `'invert``
 
         tolerance :
+           Reindexing scope.
+
            Limiting the distance, values can be shifted or comprised into aggregation.
 
         data_aggregation :
+            Data aggregation function.
+
             Function string or custom Function, determining how to aggregate new data values
             from the values at the periods selected according to the `index_selection_method`.
             If a scalar value is passed, the new data series will just evaluate to that scalar at any new index.
 
         flags_aggregation :
+            Flags Aggregation function.
+
             Function string or custom Function, determining how to aggregate new flags values
             from the values at the periods selected according to the `index_selection_method`.
             If a scalar value is passed, the new flags series will just evaluate to that scalar at any new index.
 
         broadcast :
+            Broadcast to reindexing scope.
+
             Weather to propagate aggregation result to full reindex window when using aggregation reindexer.
             (as opposed to only assign to next/previous/closest)
 
@@ -820,7 +838,9 @@ class ResamplingMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Project flags/history of :py:attr:`field` to :py:attr:`target` and adjust to the frequeny grid
+        Resample a variables flags and append them to another variables flags.
+
+        Project flags/history of :py:attr:`field` to :py:attr:`target` and adjust to the frequency grid
         of :py:attr:`target` by 'undoing' former interpolation, shifting or resampling operations
 
         Note
@@ -834,6 +854,8 @@ class ResamplingMixin(ValidatePublicMembers):
         ----------
 
         method :
+            Aggregation method.
+
             Method to project the flags of :py:attr:`field` to the flags to :py:attr:`target`:
 
            * ``'auto'``: invert the last alignment/resampling operation (that is not already inverted)
@@ -856,19 +878,27 @@ class ResamplingMixin(ValidatePublicMembers):
              :py:attr:`target`
 
         invert :
+            Apply inverse of selected method.
+
             If True, not the actual method is applied, but its inversion-method.
 
         freq :
+            Reindexing scope.
+
             Projection range. If ``None`` the sampling frequency of :py:attr:`field` is used.
 
         drop :
+            Drop `field`.
+
             Remove :py:attr:`field` if ``True``
 
         squeeze :
+            Squash history.
+
             Squeeze the history into a single column if ``True``, function specific flag information is lost.
 
         override :
-            Overwrite existing flags if ``True``
+            Override existing flags.
         """
         if method.split("_")[0] == "inverse":
             warnings.warn(

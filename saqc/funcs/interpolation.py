@@ -87,25 +87,33 @@ class InterpolationMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Replace NaN by the aggregation result of the surrounding window.
+        Impute NAN with aggregation of context.
 
         Parameters
         ----------
         window :
+            Rolling window size.
+
             The size of the window, the aggregation is computed from.
             An integer define the number of periods to be used, a string
             is interpreted as an offset. ( see `pandas.rolling` for more
             information). Integer windows may result in screwed aggregations
             if called on none-harmonized or irregular data.
 
-        func : default median
+        func :
+            Aggregation function.
+
             The function used for aggregation.
 
         center :
+            Assign aggregation to center value?
+
             Center the window around the value. Can only be used with
             integer windows, otherwise it is silently ignored.
 
         min_periods :
+            Minimum required population per window.
+
             Minimum number of valid (not np.nan) values that have to be
             available in a window for its aggregation to be
             computed.
@@ -180,16 +188,23 @@ class InterpolationMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Convert a time series to a specified frequency, interpolating values
+        Resample data and flags at uniform frequency.
+
+        Convert a time series to a specified frequency, interpolating or imputing values and flags
         according to the chosen method.
 
         Parameters
         ----------
-        freq : str or int
-            Target frequency (e.g., "1H", "15min", 60).
+        freq :
+            New sampling rate.
 
-        method : str
-            Interpolation technique to use. Supported values include:
+            The sampling frequency data is transformed to align with.
+
+        method :
+            Sampling method.
+
+            Determines how and which values are assigned to the new Index.
+            Supported methods include:
 
             * ``'nshift'``: Shift grid points to the nearest time stamp
               within +/- 0.5 * ``freq``.
@@ -208,11 +223,15 @@ class InterpolationMixin(ValidatePublicMembers):
             * ``'from_derivatives'``: Uses
               ``scipy.interpolate.BPoly.from_derivatives``.
 
-        order : int
-            Order of the interpolation method. Used only by methods that support it
+        order :
+            Method order.
+
+            Some methods need an order or degree specified additionally.
             (e.g., polynomial, spline). Ignored otherwise.
 
-        overwrite : bool
+        overwrite :
+            Overwrite existing flags.
+
             If ``True``, existing flags will be cleared.
         """
         method = "fshift" if method == "pad" else method

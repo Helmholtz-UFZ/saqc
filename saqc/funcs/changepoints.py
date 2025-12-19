@@ -41,16 +41,19 @@ class ChangepointsMixin(ValidatePublicMembers):
         Parameters
         ----------
         stat_func :
+             Aggregation function for rolling twin windows.
              A function that assigns a value to every twin window. The backward-facing
              window content will be passed as the first array, the forward-facing window
              content as the second.
 
         thresh_func :
+            Threshold function for rolling twin windows.
             A function that determines the value level, exceeding wich qualifies a
             timestamps func value as denoting a change-point.
 
         window :
-            Size of the moving windows. This is the number of observations used for
+            Size of the moving twin windows.
+            This is the number of observations used for
             calculating the statistic.
 
             If it is a single frequency offset, it applies for the backward- and the
@@ -60,11 +63,13 @@ class ChangepointsMixin(ValidatePublicMembers):
             backward facing window, the second the size of the forward facing window.
 
         min_periods :
+            Minimum population required in every window.
             Minimum number of observations in a window required to perform the changepoint
             test. If it is a tuple of two int, the first refer to the backward-,
             the second to the forward-facing window.
 
         reduce_window :
+            Merge adjacent changepoints.
             The sliding window search method is not an exact CP search method and usually
             there wont be detected a single changepoint, but a "region" of change around
             a changepoint.
@@ -76,7 +81,8 @@ class ChangepointsMixin(ValidatePublicMembers):
             If `reduce_window` is None, the reduction window size equals the twin window
             size, the changepoints have been detected with.
 
-        reduce_func : default argmax
+        reduce_func :
+            Merge-function for adjacent changepoints.
             A function that must return an index value upon input of two arrays x and y.
             First input parameter will hold the result from the stat_func evaluation for
             every reduction window. Second input parameter holds the result from the
@@ -128,43 +134,64 @@ class ChangepointsMixin(ValidatePublicMembers):
         Parameters
         ----------
         stat_func :
-            A function that assigns a value to every twin window. Left window content will
-            be passed to first variable,
-            right window content will be passed to the second.
+             Aggregation function for rolling twin windows.
+
+             A function that assigns a value to every twin window. The backward-facing
+             window content will be passed as the first array, the forward-facing window
+             content as the second.
 
         thresh_func :
+            Threshold function for rolling twin windows.
+
             A function that determines the value level, exceeding wich qualifies a
-            timestamps func value as denoting a changepoint.
+            timestamps func value as denoting a change-point.
 
         window :
-            Size of the rolling windows the calculation is performed in. If it is a single
-            frequency offset, it applies for the backward- and the forward-facing window.
+            Size of the moving twin windows.
+
+            This is the number of observations used for
+            calculating the statistic.
+
+            If it is a single frequency offset, it applies for the backward- and the
+            forward-facing window.
 
             If two offsets (as a tuple) is passed the first defines the size of the
             backward facing window, the second the size of the forward facing window.
 
         min_periods :
+            Minimum population required in every window.
+
             Minimum number of observations in a window required to perform the changepoint
             test. If it is a tuple of two int, the first refer to the backward-,
             the second to the forward-facing window.
 
         reduce_window :
-            The sliding window search method is not an exact CP search method and usually
-            there won't be detected a single changepoint, but a "region" of change around
-            a changepoint. If `reduce_window` is given, for every window of size
-            `reduce_window`, there will be selected the value with index `reduce_func(x,
-            y)` and the others will be dropped. If `reduce_window` is None, the reduction
-            window size equals the twin window size, the changepoints have been detected
-            with.
+            Merge adjacent changepoints.
 
-        reduce_func : default argmax
+            The sliding window search method is not an exact CP search method and usually
+            there wont be detected a single changepoint, but a "region" of change around
+            a changepoint.
+
+            If `reduce_window` is given, for every window of size `reduce_window`, there
+            will be selected the value with index `reduce_func(x, y)` and the others will
+            be dropped.
+
+            If `reduce_window` is None, the reduction window size equals the twin window
+            size, the changepoints have been detected with.
+
+        reduce_func :
+            Merge-function for adjacent changepoints.
+
             A function that must return an index value upon input of two arrays x and y.
             First input parameter will hold the result from the stat_func evaluation for
             every reduction window. Second input parameter holds the result from the
-            thresh_func evaluation. The default reduction function just selects the value
-            that maximizes the stat_func.
+            `thresh_func` evaluation.
+            The default reduction function just selects the value that maximizes the
+            `stat_func`.
 
         model_by_resids :
+            Assign labels or statistics.
+
             If True, the results of `stat_funcs` are written, otherwise the regime labels.
         """
 
@@ -186,7 +213,6 @@ class ChangepointsMixin(ValidatePublicMembers):
         return self
 
 
-# @validate_call()
 def _getChangePoints(
     data: pd.Series,
     stat_func: Callable[[np.ndarray, np.ndarray], float],
@@ -197,23 +223,6 @@ def _getChangePoints(
     reduce_func: Callable[[np.ndarray, np.ndarray], float] = lambda x, _: x.argmax(),
     result: Literal["cluster", "residual", "mask"] = "mask",
 ) -> pd.Series:
-    """
-    TODO: missing docstring
-
-    Parameters
-    ----------
-    data :
-    stat_func :
-    thresh_func :
-    window :
-    min_periods :
-    reduce_window :
-    reduce_func :
-    result :
-
-    Returns
-    -------
-    """
 
     orig_index = data.index
     data = data.dropna()  # implicit copy
