@@ -46,38 +46,58 @@ class NoiseMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Flag anomalous data chunks based on scatter statistics.
+        Flag data noisy data.
 
+        Breaks up data in chunks and flags those chunks, if data there is too scattered.
+        See notes section for algorithm details.
+
+        Parameters
+        ----------
+        func :
+            Scatter statistic.
+
+            A function that assigns each data chunk its scattering.
+            * ``"std"`` — standard deviation
+            * ``"var"`` — variance
+            * ``"mad"`` — median absolute deviation
+            * ``Callable`` — custom function mapping 1D arrays to scalars.
+
+        window :
+            Scatter context size.
+
+            The extension of the window, the scattering (usually variance) will be computed from, for each period.
+
+        thresh :
+            Scattering upper bound.
+
+            If the scatter statistic obtained from a window of size `window` exceeds `thresh`, the value centered
+            in the window is flagged.
+
+        sub_window :
+            Size of partitions of the scatter context.
+
+            The window determining the context for the scatter statistics calculation is divided up into disjoint
+            sub windows of size ``sub_window``, where the scattering is tested to exceed `sub_thresh`, in order to finally
+            trigger flagging.
+
+        sub_thresh :
+            Scattering upper bound on sub window.
+
+            Threshold, the statistic on every sub chunk is checked against. ``func(sub_chunk) > sub_thresh``.
+
+        min_periods :
+            Minimum window population.
+
+            Ignored if ``window`` is an integer.
+
+        Notes
+        -----
         Chunks of length ``window`` are flagged if:
 
         1. They exceed ``thresh`` according to the function ``func``.
         2. All (possibly overlapping) sub-chunks of length ``sub_window`` exceed ``sub_thresh``
            according to the same function.
 
-        Parameters
-        ----------
-        func : {"std", "var", "mad"} or Callable[[np.ndarray, pd.Series], float]
-            Function to compute deviation for each chunk:
-            * ``"std"`` — standard deviation
-            * ``"var"`` — variance
-            * ``"mad"`` — median absolute deviation
-            * Callable — custom function mapping 1D arrays to scalars.
-
-        window : str or pandas.Timedelta
-            Size of the main chunk (time-based).
-
-        thresh : float
-            Threshold, the statistic of the main chunk is checked against. ``func(chunk) > thresh``.
-
-        sub_window : str or pandas.Timedelta, optional
-            Size of sub-chunks for secondary testing.
-
-        sub_thresh : float, optional
-            Threshold, the statistic of the main chunk is checked against. ``func(sub_chunk) > sub_thresh``.
-
-        min_periods : int, optional
-            Minimum number of values required in a chunk to perform the test.
-            Ignored if ``window`` is an integer.
         """
         if sub_window is not None:
             sub_window = pd.Timedelta(sub_window)

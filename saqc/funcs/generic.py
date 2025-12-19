@@ -133,19 +133,19 @@ class GenericMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Generate/process data with user defined functions.
+        Apply custom transformation.
 
-        Call the given ``func`` on the variables given in ``field``.
+        Function ``func`` will be applied to the timeseries represented by ``field`` and the result will be written
+        to the variable ``target``.
 
         Parameters
         ----------
         func :
-            Function to call on the variables given in ``field``. The return value will be written
-            to ``target`` or ``field`` if the former is not given. This implies, that the function
-            needs to accept the same number of arguments (of type pandas.Series) as variables given
-            in ``field`` and should return an iterable of array-like objects with the same number
-            of elements as given in ``target`` (or ``field`` if ``target`` is not specified).
+            Function that transforms ``field``-data.
 
+            This function is expected to map input data series to a series/array of the same size.
+            If ``field`` has multiple values, those will be mapped monotounosly to the multiple arguments of `func`.
+            The number of arguments, `func` implements, must match the number of elements in ``field``.
 
         Note
         ----
@@ -208,17 +208,20 @@ class GenericMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Flag data based on a given function.
+        Apply custom flagging rule.
 
-        Evaluate ``func`` on all variables given in ``field``.
+        Boolean valued function ``func`` will be applied to the timeseries represented by ``field`` and the result will
+        be interpreted as flags and assigned to the variable ``target``.
 
         Parameters
         ----------
         func :
-            Function to call. The function needs to accept the same number of arguments
-            (of type pandas.Series) as variables given in ``field`` and return an
-            iterable of array-like objects of data type ``bool`` with the same length as
-            ``target``.
+            Function that assignes the flags.
+
+            This function is expected to map input data series to a boolean series/array of the same size.
+            If ``field`` has multiple values, those will be mapped monotounosly to the multiple arguments of `func`.
+            The number of arguments, `func` implements, must match the number of elements in ``field``.
+
 
         Examples
         --------

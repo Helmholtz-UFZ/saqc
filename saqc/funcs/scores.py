@@ -216,6 +216,8 @@ class ScoresMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
+        K nearest neighbor scoring.
+
         Score datapoints by an aggregation of the distances to their `k` nearest neighbors.
 
         The function is a wrapper around the NearestNeighbors method from pythons sklearn library (See reference [1]).
@@ -238,14 +240,20 @@ class ScoresMixin(ValidatePublicMembers):
 
         Parameters
         ----------
-        n : :
-            The number of nearest neighbors to which the distance is comprised in every datapoints scoring calculation.
+        n :
+            The number of nearest neighbors.
 
-        func : default sum
+            The number of nearest neighbors comprised in every datapoints scoring calculation.
+
+        func :
+            Distance aggregation.
+
             A function that assigns a score to every one dimensional array, containing the distances
             to every datapoints `n` nearest neighbors.
 
         freq :
+            Data partitioning size.
+
             Determines the segmentation of the data into partitions, the kNN algorithm is
             applied onto individually.
 
@@ -255,22 +263,30 @@ class ScoresMixin(ValidatePublicMembers):
               string
 
         min_periods :
+            Minimum population per partition.
+
             The minimum number of periods that have to be present in a window for the kNN scoring
             to be applied. If the number of periods present is below `min_periods`, the score for the
             datapoints in that window will be np.nan.
 
         algorithm :
+            Nearest Neighbors searching algorithm.
+
             The search algorithm to find each datapoints k nearest neighbors.
             The keyword just gets passed on to the underlying sklearn method.
             See reference [1] for more information on the algorithm.
 
         metric :
+            Distance metric.
+
             The metric the distances to any datapoints neighbors is computed with. The default of `metric`
             together with the default of `p` result in the euclidian to be applied.
             The keyword just gets passed on to the underlying sklearn method.
             See reference [1] for more information on the algorithm.
 
-        p : :
+        p :
+            Metrics (minkowski) degree.
+
             The grade of the metrice specified by parameter `metric`.
             The keyword just gets passed on to the underlying sklearn method.
             See reference [1] for more information on the algorithm.
@@ -332,20 +348,31 @@ class ScoresMixin(ValidatePublicMembers):
         Parameters
         ----------
         window :
-            Size of the window. can be determined as:
-            * Offset String, denoting the windows temporal extension
-            * Integer, denoting the windows number of periods.
-            * `None` (default), All data points share the same scoring window, which than equals the whole
+            Scoring window size.
+
+            If `None` (default), All data points share the same scoring window, which than equals the whole
             data.
-        model_func : default std
-            Function to calculate the center moment in every window.
-        norm_func : default mean
+
+        model_func :
+            Center moment function.
+
+            Function to calculate the center moment (usually mean or median) in every window.
+
+        norm_func :
+            Scaling function.
+
             Function to calculate the scaling for every window
+
         center :
+            Center windows around scored value.
+
             Weather or not to center the target value in the scoring window. If `False`, the
             target value is the last value in the window.
+
         min_periods :
-            Minimum number of valid meassurements in a scoring window, to consider the resulting score valid.
+            Minimum Population per window.
+
+            Minimum number of valid measurements in a scoring window, to consider the resulting score valid.
 
         Notes
         -----
@@ -401,14 +428,25 @@ class ScoresMixin(ValidatePublicMembers):
         Parameters
         ----------
         n :
+            Number of nearest neighbors.
+
             Number of periods to be included into the LOF calculation. Defaults to `20`, which is a value found to be
             suitable in the literature.
+
         freq :
+            Data partitioning frequency.
+
             Determines the segmentation of the data into partitions, the kNN algorithm is
             applied onto individually.
+
         algorithm :
+            Nearest neighbors search algorithm.
+
             Algorithm used for calculating the `n`-nearest neighbors needed for LOF calculation.
+
         p :
+            Distance metric degree.
+
             Degree of the metric ("Minkowski"), according to wich distance to neighbors is determined.
             Most important values are:
 
@@ -470,6 +508,8 @@ class ScoresMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
+        Univariate outlier scoring, based on LOF.
+
         Assign "univariate" Local Outlier Factor (LOF) or "inivariate" Local Outlier Probability (LOP)
 
         The Function is a wrapper around a usual LOF implementation, aiming for an easy to use, parameter minimal
@@ -482,6 +522,8 @@ class ScoresMixin(ValidatePublicMembers):
         Parameters
         ----------
         n :
+            Neighborhood size.
+
             Number of periods to be included into the LOF calculation. Defaults to `20`, which is a value found to be
             suitable in the literature.
 
@@ -492,16 +534,22 @@ class ScoresMixin(ValidatePublicMembers):
               points. Higher values greatly increase numerical costs.
 
         algorithm :
+            Nearest-neighbors search algorithm.
+
             Algorithm used for calculating the `n`-nearest neighbors needed for LOF calculation.
 
         p :
-            Degree of the metric ("Minkowski"), according to wich distance to neighbors is determined.
+            Distance metric degree.
+
+            Degree of the metric ("Minkowski"), according to which distance to neighbors is determined.
             Most important values are:
 
             * `1` - Manhatten Metric
             * `2` - Euclidian Metric
 
         density :
+            Time-axis differential form.
+
             How to calculate the temporal distance/density for the variable-to-be-flagged.
 
             * float - introduces linear density with an increment equal to `density`
@@ -509,6 +557,8 @@ class ScoresMixin(ValidatePublicMembers):
               (passed as Series).
 
         fill_na :
+            Impute NaN values.
+
             If True, NaNs in the data are filled with a linear interpolation.
 
         Notes

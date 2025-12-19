@@ -47,6 +47,8 @@ class ToolsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
+        Graphical user interface for flags assignment.
+
         Pop up GUI for adding or removing flags by selection of points in the data plot.
 
         * Left click and Drag the selection area over the points you want to add to selection.
@@ -71,12 +73,18 @@ class ToolsMixin(ValidatePublicMembers):
         Parameters
         ----------
         max_gap :
+            Limit for plotting gaps.
+
             If ``None``, all data points will be connected, resulting in long linear
             lines, in case of large data gaps. ``NaN`` values will be removed before
             plotting. If an offset string is passed, only points that have a distance
             below ``max_gap`` are connected via the plotting line.
+
         gui_mode :
+            Mode of the gui.
+
             * ``"GUI"`` (default), spawns TK based pop-up GUI, enabling scrolling and binding for subplots
+
             * ``"overlay"``, spawns matplotlib based pop-up GUI. May be less conflicting, but does not support
               scrolling or binding.
         """
@@ -172,12 +180,12 @@ class ToolsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Make a copy of the data and flags to a new field.
+        Copy data and flags.
 
         Parameters
         ----------
-        overwrite : bool
-            Overwrite ``target``, if already existing.
+        overwrite :
+            Overwrite ``target``.
         """
         if field == target:
             return self
@@ -195,7 +203,9 @@ class ToolsMixin(ValidatePublicMembers):
     @processing()
     def dropField(self: SaQC, field: SaQCFields, **kwargs) -> SaQC:
         """
-        Drops field from the data and flags.
+        Drop field.
+
+        Removes data and flags represented by ``field`` from the variables.
         """
         del self._data[field]
         del self._flags[field]
@@ -204,7 +214,7 @@ class ToolsMixin(ValidatePublicMembers):
     @processing()
     def renameField(self: SaQC, field: SaQCFields, new_name: str, **kwargs) -> SaQC:
         """
-        Rename field to the given name.
+        Rename field.
 
         Parameters
         ----------
@@ -229,7 +239,7 @@ class ToolsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Realizes masking within saqc.
+        Apply a mask.
 
         Due to some inner saqc mechanics, it is not straight forwardly possible to exclude
         values or datachunks from flagging routines. This function replaces flags with UNFLAGGED
@@ -250,28 +260,37 @@ class ToolsMixin(ValidatePublicMembers):
         ----------
         mode :
             The masking mode.
+
             - "periodic": parameters "period_start", "end" are evaluated to generate a periodical mask
             - "mask_var": data[mask_var] is expected to be a boolean valued timeseries and is used as mask.
 
         selection_field :
+            Variable holding the mask.
+
             Only effective if mode == "mask_var"
             Fieldname of the column, holding the data that is to be used as mask. (must be boolean series)
             Neither the series` length nor its labels have to match data[field]`s index and length. An inner join of the
             indices will be calculated and values get masked where the values of the inner join are ``True``.
 
         start :
+            Season start.
+
             Only effective if mode == "seasonal"
             String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
             Has to be of same length as `end` parameter.
             See examples section below for some examples.
 
         end :
+            Season end.
+
             Only effective if mode == "periodic"
             String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
             Has to be of same length as `end` parameter.
             See examples section below for some examples.
 
         closed :
+            Closure at mask alternation.
+
             Wheather or not to include the mask defining bounds to the mask.
 
         Examples
@@ -366,7 +385,7 @@ class ToolsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Plot data and flags or store plot to file.
+        Generate plots.
 
         There are two modes, 'interactive' and 'store', which are determined through the
         ``save_path`` keyword. In interactive mode (default) the plot is shown at runtime
@@ -377,18 +396,24 @@ class ToolsMixin(ValidatePublicMembers):
         Parameters
         ----------
         path :
+            Path to store plot to.
+
             If ``None`` is passed, interactive mode is entered; plots are shown immediatly
             and a user need to close them manually before execution continues.
             If a filepath is passed instead, store-mode is entered and
             the plot is stored unter the passed location.
 
         max_gap :
+            Limit of plotted gaps.
+
             If ``None``, all data points will be connected, resulting in long linear
             lines, in case of large data gaps. ``NaN`` values will be removed before
             plotting. If an offset string is passed, only points that have a distance
             below ``max_gap`` are connected via the plotting line.
 
         mode :
+           Plotting mode.
+
            How to process multiple variables to be plotted:
 
            * `"oneplot"` : plot all variables with their flags in one axis (default)
@@ -396,6 +421,8 @@ class ToolsMixin(ValidatePublicMembers):
            * `"biplot"` : plotting first and second variable in field against each other in a scatter plot  (point cloud).
 
         history :
+            Plot flagging history.
+
             Discriminate the plotted flags with respect to the tests they originate from.
 
             * ``"valid"``: Only plot flags, that are not overwritten by subsequent tests.
@@ -409,26 +436,36 @@ class ToolsMixin(ValidatePublicMembers):
               assigned to the data)
 
         xscope :
+            X axis limits.
+
             Determine a chunk of the data to be plotted. ``xscope`` can be anything,
             that is a valid argument to the ``pandas.Series.__getitem__`` method.
 
         yscope :
+             Y axis limits.
+
              Either a tuple of 2 scalars that determines all plots' y-view limits, or a list of those
              tuples, determining the different variables y-view limits (must match number of variables)
              or a dictionary with variables as keys and the y-view tuple as values.
 
         ax :
+            Custom axes.
+
             If not ``None``, plot into the given ``matplotlib.Axes`` instance, instead of a
             newly created ``matplotlib.Figure``. This option offers a possibility to integrate
             ``SaQC`` plots into custom figure layouts.
 
         store_kwargs :
+            Save Configuration.
+
             Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling
             the figure storing. To store an pickle object of the figure, use the option
             ``{"pickle": True}``, but note that all other ``store_kwargs`` are ignored then.
             To reopen a pickled figure execute: ``pickle.load(open(savepath, "w")).show()``
 
         ax_kwargs :
+            Axes configuration.
+
             Axis keywords. Change axis specifics. Those are passed on to the
             `matplotlib.axes.Axes.set <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set.html>`_
             method and can have the options listed there.
@@ -449,6 +486,8 @@ class ToolsMixin(ValidatePublicMembers):
               number of variables to plot.
 
         marker_kwargs :
+            Marker configuration.
+
             Keywords to modify flags marker appearance. The markers are set via the
             `matplotlib.pyplot.scatter <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.scatter.html>`_
             method and can have the options listed there.
@@ -457,6 +496,8 @@ class ToolsMixin(ValidatePublicMembers):
             * ``"cycleskip"``: (int) start the cycle of shapes that are assigned any flag-type with a certain lag - defaults to ``0`` (no skip)
 
         plot_kwargs :
+            Plot rendering configuration.
+
             Keywords to modify the plot appearance. The plotting is delegated to
             `matplotlib.pyplot.plot <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.scatter.html>`_, all options listed there are available. Additionally the following saqc specific configurations are possible:
 

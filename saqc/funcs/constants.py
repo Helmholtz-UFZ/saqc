@@ -109,8 +109,10 @@ class ConstantsMixin(ValidatePublicMembers):
         Parameters
         ----------
         window :
-            Size of the moving window. This is the number of observations used
-            for calculating the statistic. Each window will be a fixed size.
+            Size of the context window for variance.
+
+            This is the number of observations used
+            for calculating the variance. Each window will be a fixed size.
             If its an offset then this will be the time period of each window.
             Each window will be sized, based on the number of observations included
             in the time-period.
@@ -119,11 +121,15 @@ class ConstantsMixin(ValidatePublicMembers):
             Maximum total variance allowed per window.
 
         maxna :
-            Maximum number of NaNs allowed in window.
-            If more NaNs are present, the window is not flagged.
+            Maximum number of NaNs allowed in `window`.
+
+            If more NaNs are present, the window is underpopulated and wont trigger any flagging.
 
         maxna_group :
-            Same as `maxna` but for consecutive NaNs.
+            Maximum number of consecutive NaNs allowed in `window`.
+
+            If more consecutive NaNs are present, the window is underpopulated and wont trigger any flagging.
+
         """
         d: pd.Series = self._data[field]
 

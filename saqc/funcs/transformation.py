@@ -34,6 +34,8 @@ class TransformationMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
+        Data transformation.
+
         Transform data by applying a custom function on data chunks of variable size. Existing flags are preserved.
 
         Parameters
@@ -42,7 +44,9 @@ class TransformationMixin(ValidatePublicMembers):
             Transformation function.
 
         freq :
-            Size of the data window. The transformation is applied on each window individually
+            Segmentation size.
+
+            The transformation is applied on each segment individually
 
             * ``None``: Apply transformation on the entire data set at once
             * ``int`` : Apply transformation on successive data chunks of the given length. Must be grater than 0.

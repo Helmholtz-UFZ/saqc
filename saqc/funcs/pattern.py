@@ -621,26 +621,30 @@ class PatternMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Flag anomalous value plateaus.
+        Flag ofsetted groups of data..
 
         Parameters
         ----------
-        min_length : int or str
+        min_length :
+            Size threshold for offseted groups.
             Minimum temporal extension of a value course to qualify as a plateau.
 
-        max_length : int, str, or None
+        max_length :
+            Size limit for offsetted groups.
             Maximum temporal extension of a value course to qualify as a plateau
             (upper detection limit). If None, a detection limit based on the data
             length is used.
 
-        min_jump : float or None
+        min_jump :
+            Offset (jump) threshold.
             Minimum difference a plateau must have from directly preceding and
             succeeding periods. If None, the minimum jump threshold is derived
             automatically from the median of local absolute differences in the
             vicinity of potential anomalies.
 
-        granularity : int, str, or None
-            Precision of the search. Smaller values increase precision but also
+        granularity :
+            Search precision.
+            Smaller values increase precision but also
             computational cost. If None, defaults to 5.
 
         Notes
@@ -728,7 +732,10 @@ class PatternMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Pattern Recognition via Dynamic Time Warping.
+        Pattern Recognition with DTW metric.
+
+        Identify stretched or squeezed versions of a pattern by evaluating their difference according to
+        a metric constructed with the Dynamic Time Warping (DTW) algorithm.
 
         The steps are:
         1. work on a moving window
@@ -743,15 +750,18 @@ class PatternMixin(ValidatePublicMembers):
         Parameters
         ----------
         reference :
-            The name in `data` which holds the pattern. The pattern must
-            not have NaNs, have a datetime index and must not be empty.
+            Variable holding the pattern.
+
+            The pattern must not have NaNs.
 
         max_distance :
-            Maximum dtw-distance between chunk and pattern, if the distance
-            is lower than ``max_distance`` the data gets flagged. With
-            default, ``0.0``, only exact matches are flagged.
+            DTW-distance limit.
+
+            Maximum dtw-distance between chunk and pattern, for chunk to be interpreted as an instance of the pattern.
 
         normalize :
+            DTW distance normalisation.
+
             If `False`, return unmodified distances.
             If `True`, normalize distances by the number of observations
             of the reference. This helps to make it easier to find a
@@ -760,6 +770,8 @@ class PatternMixin(ValidatePublicMembers):
             in the datas units.
 
         plot :
+            Calibration plot.
+
             Show a calibration plot, which can be quite helpful to find
             the right threshold for `max_distance`. It works best with
             `normalize=True`. Do not use in automatic setups / pipelines.
