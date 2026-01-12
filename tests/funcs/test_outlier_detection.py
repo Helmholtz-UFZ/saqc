@@ -52,61 +52,6 @@ def test_flagSpikesBasic(spiky_data):
     assert test_sum == len(spiky_data[1])
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
-@pytest.mark.slow
-@pytest.mark.parametrize("dat", ["course_1", "course_2", "course_3", "course_4"])
-def test_flagSpikesLimitRaise(dat, request):
-    dat = request.getfixturevalue(dat)
-    data, characteristics = dat()
-    field, *_ = data.columns
-    flags = initFlagsLike(data)
-    qc = SaQC(data, flags).flagRaise(
-        field,
-        thresh=2,
-        freq="10min",
-        raise_window="20min",
-        flag=BAD,
-    )
-    assert np.all(qc.flags[field][characteristics["raise"]] > UNFLAGGED)
-    assert not np.any(qc.flags[field][characteristics["return"]] > UNFLAGGED)
-    assert not np.any(qc.flags[field][characteristics["drop"]] > UNFLAGGED)
-
-
-# see test/functs/fixtures.py for the 'course_N'
-def test_flagMVScores(course_3):
-    def _check(fields, flags, characteristics):
-        for field in fields:
-            isflagged = flags[field] > UNFLAGGED
-            assert isflagged[characteristics["raise"]].all()
-            assert not isflagged[characteristics["return"]].any()
-            assert not isflagged[characteristics["drop"]].any()
-
-    data1, characteristics = course_3(
-        periods=1000, initial_level=5, final_level=15, out_val=50
-    )
-    data2, characteristics = course_3(
-        periods=1000, initial_level=20, final_level=1, out_val=30
-    )
-    fields = ["field1", "field2"]
-    s1, s2 = data1["data"], data2["data"]
-    s1 = pd.Series(data=s1.values, index=s1.index)
-    s2 = pd.Series(data=s2.values, index=s1.index)
-    data = DictOfSeries(field1=s1, field2=s2)
-    flags = initFlagsLike(data)
-    qc = SaQC(data, flags)
-    qc = qc.processGeneric("field1", func=lambda x: np.log(x))
-    qc = qc.processGeneric("field2", func=lambda x: np.log(x))
-    qc = qc.assignKNNScore(
-        ["field1", "field2"],
-        target="kNNScores",
-    )
-    qc = qc.flagByStray("kNNScores", iter_start=0.95)
-    qc = qc.transferFlags("kNNScores", target="field1")
-    qc = qc.transferFlags("kNNScores", target="field2")
-
-    _check(fields, qc.flags, characteristics)
-
-
 def test_grubbs(course_3):
     data, char_dict = course_3(
         freq="10min",
@@ -346,8 +291,6 @@ def test_flagOffsetRelative_threshold_boundary():
     data = pd.DataFrame({field: values}, index=idx)
     qc = SaQC(data).flagOffset(field="sensor", window="6h", thresh_relative=0.2)
     actual_flags = qc.flags.to_pandas()
-
-    print(actual_flags)
 
     expected_flags = pd.DataFrame(
         {field: [UNFLAGGED, BAD, UNFLAGGED, UNFLAGGED, UNFLAGGED]}, index=idx

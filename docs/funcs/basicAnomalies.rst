@@ -13,7 +13,6 @@ Basic Anomalies
    ~SaQC.flagMissing
    ~SaQC.flagIsolated
    ~SaQC.flagJumps
-   ~SaQC.flagRaise
    ~SaQC.flagConstants
    ~SaQC.flagByVariance
    ~SaQC.flagPlateau

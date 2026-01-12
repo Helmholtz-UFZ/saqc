@@ -14,7 +14,6 @@ Univariate Outlier Detection
 
    ~SaQC.flagUniLOF
    ~SaQC.flagByStray
-   ~SaQC.flagMAD
    ~SaQC.flagOffset
    ~SaQC.flagRange
    ~SaQC.flagLOF

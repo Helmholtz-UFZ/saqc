@@ -90,12 +90,12 @@ was maintained. Lets have a look at those:
    Name: maint, dtype: object
 
 Measurements collected while maintenance are not trustworthy, so any measurement taken, in any of the listed
-intervals should be flagged right away. This can be achieved, with the :py:meth:`~saqc.SaQC.flagManual` method. Also,
+intervals should be flagged right away. This can be achieved, with the :py:meth:`~saqc.SaQC.setFlags` method. Also,
 we will flag out-of-range values in the data with the :py:meth:`~saqc.SaQC.flagRange` method:
 
 .. doctest:: exampleMV
 
-   >>> qc = qc.flagManual('sac254_raw', mdata='maint', method='closed', label='Maintenance')
+   >>> qc = qc.setFlags('sac254_raw', data='maint', label='Maintenance')
    >>> qc = qc.flagRange('level_raw', min=0)
    >>> qc = qc.flagRange('water_temp_raw', min=-1, max=40)
    >>> qc = qc.flagRange('sac254_raw', min=0, max=60)
@@ -104,7 +104,7 @@ we will flag out-of-range values in the data with the :py:meth:`~saqc.SaQC.flagR
    :context:
    :include-source: False
 
-   qc = qc.flagManual('sac254_raw', mdata='maint', method='closed', label='Maintenance')
+   qc = qc.setFlags('sac254_raw', data='maint', label='Maintenance')
    qc = qc.flagRange('level_raw', min=0)
    qc = qc.flagRange('water_temp_raw', min=-1, max=40)
    qc = qc.flagRange('sac254_raw', min=0, max=60)

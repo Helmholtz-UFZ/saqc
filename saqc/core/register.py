@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Sequence, Tuple, Ty
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, ConfigDict, create_model
 from typing_extensions import ParamSpec
 
 from saqc import FILTER_ALL, FILTER_NONE
@@ -471,6 +470,11 @@ def register(
             **kwargs,
         ) -> "SaQC":
 
+            if regex is True:
+                warnings.warn(
+                    "The global function parameter 'regex' will be removed in SaQC 2.10",
+                    DeprecationWarning,
+                )
             if "target" in kwargs and kwargs["target"] is None:
                 kwargs.pop("target")
 

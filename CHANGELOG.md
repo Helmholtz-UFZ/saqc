@@ -15,10 +15,20 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `SaQC.flagRange`: Make the parameters `min` and `max` optional
 - `SaQC.resample`: fixed redundant resampling window validation
 ### Removed
+- Deprecated function `SaQC.flagMVScores`
+- Deprecated function `SaQC.flagRaise`
+- Deprecated function `SaQC.flagMAD`
+- Deprecated function `SaQC.flagByGrubbs`
+- Deprecated function `SaQC.flagManual`
+- Paremeter `freq` in `SaQC.flagDriftFromNorm`
+- Option to pass arguments of type dict to parameter `group` in `SaQC.andGroup` and `SaQC.orGroup`
+- Option to pass the argument `"match"` to parameter  `method` in `SaQC.concatFlags`
+- Support for arguments with prefix `inverse` to parameter `method` in `SaQC.concatFlags`
 ### Fixed
 - `SaQC.resample`: fixed missing import when called with `squeeze=True`
 - `SaQC.flagRange`: fixed missing multifield support
 ### Deprecated
+- Global mnethod parameter `regex`
 
 ## [2.7.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.7.0) - 2025-09-09
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.6.0...v2.7.0)
@@ -34,9 +44,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Removed
 ### Fixed
 - `flagConstants`: fixed bug where last `min_periods` will never get flagged
-- importing `FILL_METHODS` from `lib.types` module for annotation usage in `curvefit` 
+- importing `FILL_METHODS` from `lib.types` module for annotation usage in `curvefit`
 - `resample` now only resamples additionally with the validation func, if it is parameterized to do so
-- fixed bug where `setFlags` fails with empty data 
+- fixed bug where `setFlags` fails with empty data
 ### Deprecated
 - Function `flagMissing` in favor of `flagNAN`
 

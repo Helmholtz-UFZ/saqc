@@ -113,7 +113,7 @@ class DriftMixin(ValidatePublicMembers):
 
         Notes
         -----
-        following steps are performed for every data "segment" of length `freq` in order to find the
+        following steps are performed for every data "segment" of length `window` in order to find the
         "abnormal" data:
 
         1. Calculate distances :math:`d(x_i,x_j)` for all :math:`x_i` in parameter `field`.
@@ -146,15 +146,6 @@ class DriftMixin(ValidatePublicMembers):
         Introduction to Hierarchical clustering:
             [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
         """
-
-        if "freq" in kwargs:
-            warnings.warn(
-                "The parameter `freq` is deprecated and will be "
-                "removed in version 2.7 of saqc. Please us the "
-                "parameter `window` instead.'",
-                DeprecationWarning,
-            )
-            window = kwargs["freq"]
 
         fields = toSequence(field)
 
