@@ -356,24 +356,25 @@ class ResamplingMixin(ValidatePublicMembers):
 
             Same as `maxna` but for consecutive NaNs.
         """
-
-        validator = lambda x: isValid(
-            x, max_nan_total=maxna, max_nan_consec=maxna_group
-        )
-        tmp_val_field = str(uuid.uuid4())
-        # parametrise reindexer for the interval validation:
-        # we check any interval for sufficing the maxna and maxnagroup condition
-        # broadcast is set to False, since we mimic "pandas resample"
-        self = self.reindex(
-            field,
-            target=tmp_val_field,
-            index=freq,
-            method=method,
-            data_aggregation=validator,
-            broadcast=False,
-            **kwargs,
-        )
-        # repeat the reindexing with the selected resampling func func
+        validator = None
+        if (maxna_group is not None) or (maxna is not None):
+            validator = lambda x: isValid(
+                x, max_nan_total=maxna, max_nan_consec=maxna_group
+            )
+            tmp_val_field = str(uuid.uuid4())
+            # parametrise reindexer for the interval validation:
+            # we check any interval for sufficing the maxna and maxnagroup condition
+            # broadcast is set to False, since we mimic "pandas resample"
+            self = self.reindex(
+                field,
+                target=tmp_val_field,
+                index=freq,
+                method=method,
+                data_aggregation=validator,
+                broadcast=False,
+                **kwargs,
+            )
+        # repeat the reindexing with the resampling func func
         self = self.reindex(
             field,
             index=freq,
@@ -384,14 +385,15 @@ class ResamplingMixin(ValidatePublicMembers):
             broadcast=False,
             **kwargs,
         )
-        # where the validation returned False, overwrite the resampling result:
-        self = self.processGeneric(
-            [field, tmp_val_field],
-            target=field,
-            func=lambda x, y: x.where(y.astype(bool), np.nan),
-        )
-        self = self.dropField(tmp_val_field)
-
+        if validator is not None:
+            # where the validation returned False, overwrite the resampling result:
+            self = self.processGeneric(
+                [field, tmp_val_field],
+                target=field,
+                func=lambda x, y: x.where(y.astype(bool), np.nan),
+            )
+            self = self.dropField(tmp_val_field)
+            self._flags.history[field] = self._flags.history[field][:, :-1]
         r_meta = {
             "field": field,
             "func": "resample",
@@ -405,7 +407,6 @@ class ResamplingMixin(ValidatePublicMembers):
                 **kwargs,
             },
         }
-        self._flags.history[field] = self._flags.history[field][:, :-1]
         self._flags.history[field].meta = self._flags.history[field].meta[:-1] + [
             r_meta
         ]

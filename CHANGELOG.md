@@ -13,6 +13,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `start_date` and `end_date` keyword arguments can be used to determine seasonal masks
 ### Changed
 - `SaQC.flagRange`: Make the parameters `min` and `max` optional
+- `SaQC.resample`: fixed redundant resampling window validation
 ### Removed
 ### Fixed
 - `SaQC.resample`: fixed missing import when called with `squeeze=True`
@@ -34,6 +35,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Fixed
 - `flagConstants`: fixed bug where last `min_periods` will never get flagged
 - importing `FILL_METHODS` from `lib.types` module for annotation usage in `curvefit` 
+- `resample` now only resamples additionally with the validation func, if it is parameterized to do so
 - fixed bug where `setFlags` fails with empty data 
 ### Deprecated
 - Function `flagMissing` in favor of `flagNAN`
