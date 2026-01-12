@@ -901,28 +901,6 @@ class ResamplingMixin(ValidatePublicMembers):
         override :
             Override existing flags.
         """
-        if method.split("_")[0] == "inverse":
-            warnings.warn(
-                f""" Referring to a method that would invert a method 'A` via 'inverse_A' is deprecated and will
-                be removed in version 2.7. Please use method={method.split('_')[-1]} together
-                with invert=True.
-                """,
-                DeprecationWarning,
-            )
-            method = method.split("_")[-1]
-            invert = True
-
-        if method == "match":
-            warnings.warn(
-                f"The method 'match' is deprecated and will be removed "
-                f"in version 2.7 of SaQC. Please use `SaQC.transferFlags(field={field}, "
-                f"target={target}, squeeze={squeeze}, overwrite={override})` instead",
-                DeprecationWarning,
-            )
-            return self.transferFlags(
-                field=field, target=target, squeeze=squeeze, overwrite=override
-            )
-
         if target is None:
             target = field
 

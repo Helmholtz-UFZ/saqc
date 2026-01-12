@@ -81,14 +81,14 @@ functions for that matter) is then called on the given ``field`` (only).
 Each call to a ``SaQC`` method returns a new object (all itermediate objects share the main internal data
 structures, so we only create shallow copies). Setting up more complex quality control suites (here by calling
 the additional methods :py:meth:`~saqc.SaQC.flagConstants` and
-:py:meth:`~saqc.SaQC.flagByGrubbs`) is therefore simply a matter of method chaining.
+:py:meth:`~saqc.SaQC.flagZScore`) is therefore simply a matter of method chaining.
 
 .. testcode:: python
 
    # execute some tests
    qc = (qc
          .flagConstants("a", thresh=0.1, window=4)
-         .flagByGrubbs("a", window=10)
+         .flagZScore("a", window=10, method="modified")
          .flagRange("a", min=20, max=80))
 
 
@@ -120,13 +120,13 @@ number of different attributes, of which you likely might want to use the follow
                        a |
    ===================== |
    2020-01-01        BAD |
-   2020-01-02  UNFLAGGED |
-   2020-01-03  UNFLAGGED |
+   2020-01-02        BAD |
+   2020-01-03        BAD |
    2020-01-04  UNFLAGGED |
    2020-01-05  UNFLAGGED |
    2020-01-06  UNFLAGGED |
    2020-01-07  UNFLAGGED |
-   2020-01-08  UNFLAGGED |
+   2020-01-08        BAD |
    2020-01-09        BAD |
    2020-01-10        BAD |
 
@@ -156,7 +156,7 @@ The snippet below provides you with a compete example from the things we have se
    # execute some tests
    qc = (qc
          .flagConstants("a", thresh=0.1, window="4D")
-         .flagByGrubbs("a", window="10D")
+         .flagUniLOF("a", window="10D")
          .flagRange("a", min=20, max=80))
 
    # retrieve the data

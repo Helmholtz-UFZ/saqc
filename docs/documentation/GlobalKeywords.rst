@@ -84,7 +84,7 @@ At first, we apply some flagging functions to mark anomalies without usage of th
    >>> qc = qc.flagRange('data', max=15)
    >>> qc = qc.flagRange('data', min=-16)
    >>> qc = qc.flagConstants('data', window='2D', thresh=0)
-   >>> qc = qc.flagManual('data', mdata=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])))
+   >>> qc = qc.setFlags('data', data=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])))
    >>> qc.plot('data') # doctest:+SKIP
 
 .. plot::
@@ -94,12 +94,12 @@ At first, we apply some flagging functions to mark anomalies without usage of th
    qc = qc.flagRange('data', max=15)
    qc = qc.flagRange('data', min=-16)
    qc = qc.flagConstants('data', window='2D', thresh=0)
-   qc = qc.flagManual('data', mdata=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])))
+   qc = qc.setFlags('data', data=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])))
    qc.plot('data')
 
 In the above plot, one might want to discern the two results from the call to :py:meth:`saqc.SaQC.flagRange` with
 respect to the parameters they where called with, also, one might want to give some hints about what is the context of
-the flags "manually" determined by the call to :py:meth:`saqc.SaQC.flagManual`. Lets repeat the procedure and
+the flags "manually" determined by the call to :py:meth:`saqc.SaQC.setFlags`. Lets repeat the procedure and
 enrich the call with this information by making use of the label keyword:
 
 Label Example Usage
@@ -111,7 +111,7 @@ Label Example Usage
    >>> qc = qc.flagRange('data', max=15, label='values < 15')
    >>> qc = qc.flagRange('data', min=-16, label='values > -16')
    >>> qc = qc.flagConstants('data', window='2D', thresh=0, label='values constant longer than 2 days')
-   >>> qc = qc.flagManual('data', mdata=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])), label='values collected while sensor maintenance')
+   >>> qc = qc.setFlags('data', data=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])), label='values collected while sensor maintenance')
    >>> qc.plot('data') # doctest:+SKIP
 
 .. plot::
@@ -122,7 +122,7 @@ Label Example Usage
    qc = qc.flagRange('data', max=15, label='values < 15')
    qc = qc.flagRange('data', min=-16, label='values > -16')
    qc = qc.flagConstants('data', window='2D', thresh=0, label='values constant longer than 2 days')
-   qc = qc.flagManual('data', mdata=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])), label='values collected while sensor maintenance')
+   qc = qc.setFlags('data', data=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])), label='values collected while sensor maintenance')
    qc.plot('data')
 
 
@@ -150,7 +150,7 @@ ranging from ``-inf`` to ``255.0``).:
    >>> qc = saqc.SaQC(data)
    >>> qc = qc.flagRange('data', max=15, label='flaglevel=200', flag=200)
    >>> qc = qc.flagRange('data', min=-16, label='flaglevel=100', flag=100)
-   >>> qc = qc.flagManual('data', mdata=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])), label='flaglevel=0', flag=0)
+   >>> qc = qc.setFlags('data', data=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])), label='flaglevel=0', flag=0)
    >>> qc.plot('data') # doctest:+SKIP
 
 
@@ -161,7 +161,7 @@ ranging from ``-inf`` to ``255.0``).:
    qc = saqc.SaQC(data)
    qc = qc.flagRange('data', max=15, label='flaglevel=200', flag=200)
    qc = qc.flagRange('data', min=-16, label='flaglevel=100', flag=100)
-   qc = qc.flagManual('data', mdata=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])), label='flaglevel=0', flag=0)
+   qc = qc.setFlags('data', data=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])), label='flaglevel=0', flag=0)
    qc.plot('data')
 
 With the ``dfilter`` Keyword, we can now control, which of the flags are passed on to the plot function.

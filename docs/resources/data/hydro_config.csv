@@ -1,7 +1,7 @@
 varname                 ; test
 #-----------------------;-------------------------------------------
 # Data Preparation
-sac254_raw              ; flagManual(mdata='maint', method='closed')
+sac254_raw              ; setFlags(data='maint')
 level_raw               ; flagRange(min=0)
 water_temp_raw          ; flagRange(min=-1)
 sac254_raw              ; flagRange(min=0, max=60)

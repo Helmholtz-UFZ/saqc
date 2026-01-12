@@ -78,7 +78,7 @@ to respective :doc:`documentation page <../documentation/ConfigurationFiles>`
 
 In this case, we trigger a :py:meth:`range <saqc.SaQC.flagRange>` test, that flags all values exceeding
 the range of the bounds of the interval *[10,60]*. Subsequently, a test to detect spikes, is applied,
-using the MAD-method. (:py:meth:`~saqc.SaQC.flagMAD`).
+using a z-scoring algorithm. (:py:meth:`~saqc.SaQC.flagZScore`).
 You can find an overview of all available quality control tests
 :ref:`here <modules/SaQCFunctions:Test Functions>`. Note that the tests are
 *executed in the order that you define in the configuration file*. The quality
@@ -150,7 +150,7 @@ So, what do we see here?
   tests for the variable ``SM2``\ , as defined in the config-file
 * Following our definition in the config-file, first the :py:meth:`~saqc.SaQC.flagRange` -test that flags
   all values outside the range [10,60] was executed and after that,
-  the :py:meth:`~saqc.SaQC.flagMAD` -test to identify spikes in the data
+  the :py:meth:`~saqc.SaQC.flagZScore` -test to identify spikes in the data
 * Finally we triggered the generation of a plot, by adding the :py:meth:`~saqc.SaQC.plot` function in the last line.
 
 Save outputs to file
