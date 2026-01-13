@@ -230,7 +230,7 @@ upload_testpypi:
 pages:
   stage: deploy
   only:
-    - develop
+    - main
   except:
     - schedules
   script:
