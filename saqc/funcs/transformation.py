@@ -20,8 +20,14 @@ if TYPE_CHECKING:
 else:
     from saqc.lib.types import SaQC
 
-
-from saqc.lib.types import FreqStr, Int, SaQC, SaQCFields, ValidatePublicMembers
+from saqc.lib.types import (
+    AGG_FUNC_LITERALS,
+    FreqStr,
+    Int,
+    SaQC,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 
 
 class TransformationMixin(ValidatePublicMembers):
@@ -29,7 +35,7 @@ class TransformationMixin(ValidatePublicMembers):
     def transform(
         self: SaQC,
         field: SaQCFields,
-        func: Callable[[pd.Series | np.ndarray], pd.Series] | str,
+        func: Callable[[pd.Series | np.ndarray], pd.Series] | AGG_FUNC_LITERALS,
         freq: (Int > 0) | FreqStr | None = None,
         **kwargs,
     ) -> SaQC:

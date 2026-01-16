@@ -19,6 +19,7 @@ from saqc.core.history import History
 from saqc.lib.tools import isflagged
 from saqc.lib.ts_operators import interpolateNANs
 from saqc.lib.types import (
+    AGG_FUNC_LITERALS,
     FreqStr,
     Int,
     OffsetStr,
@@ -80,7 +81,7 @@ class InterpolationMixin(ValidatePublicMembers):
         self: SaQC,
         field: SaQCFields,
         window: OffsetStr | (Int > 0),
-        func: Callable[[pd.Series], float] | str = "median",
+        func: Callable[[pd.Series], float] | AGG_FUNC_LITERALS = "median",
         center: bool = True,
         min_periods: Int >= 0 = 0,
         flag: float = UNFLAGGED,

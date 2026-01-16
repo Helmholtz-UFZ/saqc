@@ -127,7 +127,7 @@ class OutliersMixin(ValidatePublicMembers):
     )
     def flagLOF(
         self: SaQC,
-        field: str | Sequence[str],
+        field: SaQCFields,
         n: Int > 0 = 20,
         thresh: Literal["auto"] | (Float >= 1) = 1.5,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",

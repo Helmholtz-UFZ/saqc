@@ -28,11 +28,14 @@ from pydantic.functional_validators import AfterValidator
 from typing_extensions import Annotated, Protocol, runtime_checkable
 
 from saqc.lib.checking import (
+    checkDateIndextStr,
     checkFields,
     checkFreqStr,
     checkNewFields,
     checkOffsetStr,
+    checkPathStr,
     checkSaQC,
+    checkTimestampStr,
 )
 
 FILL_METHODS = Literal[
@@ -85,6 +88,31 @@ AGG_FUNC_LITERALS = Literal[
 
 LINKAGE_STRING = Literal[
     "single", "complete", "average", "weighted", "centroid", "median", "ward"
+]
+
+METRIC_STRING = Literal[
+    "euclidean",
+    "l2",
+    "minkowski",
+    "p",
+    "manhattan",
+    "cityblock",
+    "l1",
+    "chebyshev",
+    "infinity",
+    "seuclidean",
+    "mahalanobis",
+    "hamming",
+    "canberra",
+    "braycurtis",
+    "jaccard",
+    "dice",
+    "rogerstanimoto",
+    "russellrao",
+    "sokalmichener",
+    "sokalsneath",
+    "haversine",
+    "pyfunc",
 ]
 
 
@@ -230,6 +258,8 @@ def _valContextError(fieldType, valContext, valInfo):
 
 class SaQCColumns(RootModel[Union[str, list[str]]]):
     """
+    Existing variable name(s).
+
     Type that can be an annotation to SaQC methods parameters and is checked against argument 'self' in those methods.
     Consistency is only ensured if `self` is validated (and thus defined) before the parameter being of `SaQCColumns` type.
     """
@@ -250,6 +280,8 @@ class SaQCColumns(RootModel[Union[str, list[str]]]):
 
 class NewSaQCFields(RootModel[Union[str, list[str]]]):
     """
+    String(s) not matching a name of an existing variable.
+
     Type that can be an annotation to SaQC methods parameters and is checked against argument 'self' in those methods.
     Consistency is only ensured if `self` is validated (and thus defined) before the parameter being of `NewSaQCField` type.
     """
@@ -270,6 +302,8 @@ class NewSaQCFields(RootModel[Union[str, list[str]]]):
 
 class SaQCFields(RootModel[Union[str, list[str]]]):
     """
+    Existing variable name(s) or regular expression matching existing variable name(s).
+
     Type that can be an annotation to SaQC methods parameters and is checked against argument 'self' in those methods.
     This type also checks for regex kwarg - for plain selector type, use `SaQCColumns` type.
     Consistency is only ensured if `self` is validated before `SaQCField` type.
@@ -291,24 +325,68 @@ class SaQCFields(RootModel[Union[str, list[str]]]):
 
 
 class ArrayLike(RootModel):
+    """
+    numpy.array, pandas.Series or pandas.DataFrame.
+    """
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
     root: np.ndarray | pd.Series | pd.DataFrame
 
 
 class OffsetLike(RootModel):
+    """
+    pandas.Timedelta or pandas.DateOffset
+    """
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
     root: pd.Timedelta | pd.DateOffset
 
 
+class PathStr(RootModel):
+    """
+    String representation of file or folder path
+    """
+
+    root: Annotated[str, AfterValidator(checkPathStr)]
+
+
+class TimestampStr(RootModel):
+    """
+    String representation of timestamp
+    """
+
+    root: Annotated[str, AfterValidator(checkTimestampStr)]
+
+
 class OffsetStr(RootModel):
+    """
+    String representation of a date offset
+    """
+
     root: Annotated[str, AfterValidator(checkOffsetStr)]
 
 
+class DateIndexStr(RootModel):
+    """
+    String representation of a date index
+    """
+
+    root: Annotated[str, AfterValidator(checkDateIndextStr)]
+
+
 class FreqStr(RootModel):
+    """
+    String representation of a sampling rate
+    """
+
     root: Annotated[str, AfterValidator(checkFreqStr)]
 
 
 class SaQC(RootModel):
+    """
+    SaQC Instance.
+    """
+
     root: Annotated[Any, AfterValidator(checkSaQC)]
 
 

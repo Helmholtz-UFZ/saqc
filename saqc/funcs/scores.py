@@ -21,6 +21,8 @@ from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import getApply, toSequence
 from saqc.lib.ts_operators import kNN
 from saqc.lib.types import (
+    AGG_FUNC_LITERALS,
+    METRIC_STRING,
     Float,
     FreqStr,
     Int,
@@ -207,11 +209,11 @@ class ScoresMixin(ValidatePublicMembers):
         field: SaQCFields,
         target: SaQCColumns | NewSaQCFields,
         n: Int > 0 = 10,
-        func: Callable[[pd.Series], float] | str = "sum",
+        func: Callable[[pd.Series], float] | AGG_FUNC_LITERALS = "sum",
         freq: (Float >= 0) | FreqStr = np.inf,
         min_periods: Int >= 0 = 2,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
-        metric: str = "minkowski",
+        metric: METRIC_STRING = "minkowski",
         p: Int > 0 = 2,
         **kwargs,
     ) -> SaQC:
@@ -334,8 +336,8 @@ class ScoresMixin(ValidatePublicMembers):
         self: SaQC,
         field: SaQCFields,
         window: OffsetStr | None = None,
-        norm_func: Callable | str = "std",
-        model_func: Callable | str = "mean",
+        norm_func: Callable | AGG_FUNC_LITERALS = "std",
+        model_func: Callable | AGG_FUNC_LITERALS = "mean",
         center: bool = True,
         min_periods: (Int >= 0) | None = None,
         **kwargs,

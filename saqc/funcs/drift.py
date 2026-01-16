@@ -176,7 +176,7 @@ class DriftMixin(ValidatePublicMembers):
     def flagDriftFromReference(
         self: SaQC,
         field: SaQCFields,
-        reference: str,
+        reference: SaQCColumns,
         freq: FreqStr,
         thresh: Float >= 0,
         metric: Callable[

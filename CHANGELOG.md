@@ -11,6 +11,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Added
 - Support for tuples and dictionaries in config files
 - `start_date` and `end_date` keyword arguments can be used to determine seasonal masks
+- data types `TimestampStr`, `DateIndexStr`, `PathStr`
 ### Changed
 - `SaQC.flagRange`: Make the parameters `min` and `max` optional
 - `SaQC.resample`: fixed redundant resampling window validation

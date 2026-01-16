@@ -144,7 +144,7 @@ class CurvefitMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[], multivariate=True)
     def fitMomentFM(
         self: "SaQC",
-        field: str | list[str],
+        field: SaQCFields,
         ratio: int = 4,
         context: int = 512,
         agg: Literal["center", "mean", "median", "std"] = "mean",

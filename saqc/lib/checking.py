@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import TypeVar
 
 import pandas as pd
@@ -12,7 +13,30 @@ import pandas as pd
 T = TypeVar("T")
 
 
-#
+def checkTimestampStr(s: str) -> pd.offsets.BaseOffset:
+    try:
+        pd.Timestamp(s)
+    except:
+        raise KeyError(f"can't associate '{s}' with a timestamp.")
+    return s
+
+
+def checkPathStr(s: str) -> pd.offsets.BaseOffset:
+    try:
+        Path(s)
+    except TypeError:
+        raise KeyError(f"Cant make no path from: '{s}'")
+    return s
+
+
+def checkDateIndextStr(s: str) -> pd.offsets.BaseOffset:
+    try:
+        pd.Series(index=pd.DatetimeIndex([]))[s]
+    except KeyError:
+        raise KeyError(f"can't index with: '{s}'")
+    return s
+
+
 def checkOffsetStr(freq: str) -> pd.offsets.BaseOffset:
     try:
         pd.tseries.frequencies.to_offset(freq)
