@@ -15,7 +15,14 @@ import pandas as pd
 from saqc.core import register
 from saqc.funcs.curvefit import _fitPolynomial
 from saqc.funcs.rolling import _roll
-from saqc.lib.types import Int, OffsetStr, SaQC, SaQCFields, ValidatePublicMembers
+from saqc.lib.types import (
+    AGG_FUNC_LITERALS,
+    Int,
+    OffsetStr,
+    SaQC,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 
 
 class ResidualsMixin(ValidatePublicMembers):
@@ -92,7 +99,7 @@ class ResidualsMixin(ValidatePublicMembers):
         self: SaQC,
         field: SaQCFields,
         window: OffsetStr | (Int > 0),
-        func: Callable[[pd.Series], np.ndarray] | str = "mean",
+        func: Callable[[pd.Series], np.ndarray] | AGG_FUNC_LITERALS = "mean",
         min_periods: Int >= 0 = 0,
         center: bool = True,
         **kwargs,

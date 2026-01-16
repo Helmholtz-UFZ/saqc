@@ -23,11 +23,14 @@ from saqc.lib.plotting import makeFig
 from saqc.lib.selectionGUI import MplScroller, SelectionOverlay
 from saqc.lib.tools import periodicMask
 from saqc.lib.types import (
+    DateIndexStr,
     NewSaQCFields,
     OffsetStr,
+    PathStr,
     SaQC,
     SaQCColumns,
     SaQCFields,
+    TimestampStr,
     ValidatePublicMembers,
 )
 
@@ -212,7 +215,9 @@ class ToolsMixin(ValidatePublicMembers):
         return self
 
     @processing()
-    def renameField(self: SaQC, field: SaQCFields, new_name: str, **kwargs) -> SaQC:
+    def renameField(
+        self: SaQC, field: SaQCFields, new_name: NewSaQCFields, **kwargs
+    ) -> SaQC:
         """
         Rename field.
 
@@ -233,8 +238,8 @@ class ToolsMixin(ValidatePublicMembers):
         field: SaQCFields,
         mode: Literal["periodic", "selection_field"],
         selection_field: SaQCColumns | None = None,
-        start: str | None = None,
-        end: str | None = None,
+        start: TimestampStr | None = None,
+        end: TimestampStr | None = None,
         closed: bool = True,
         **kwargs,
     ) -> SaQC:
@@ -370,11 +375,11 @@ class ToolsMixin(ValidatePublicMembers):
     def plot(
         self: SaQC,
         field: SaQCFields,
-        path: str | None = None,
+        path: PathStr | None = None,
         max_gap: OffsetStr | None = None,
-        mode: Literal["subplots", "oneplot"] | str = "oneplot",
+        mode: Literal["subplots", "oneplot", "biplot"] = "oneplot",
         history: Literal["valid", "complete"] | list[str] | None = "valid",
-        xscope: slice | OffsetStr | str | None = None,
+        xscope: slice | OffsetStr | DateIndexStr | None = None,
         yscope: list[tuple[float, float]] | tuple[float, float] | dict | None = None,
         store_kwargs: dict | None = None,
         ax: mpl.axes.Axes | None = None,
@@ -387,11 +392,8 @@ class ToolsMixin(ValidatePublicMembers):
         """
         Generate plots.
 
-        There are two modes, 'interactive' and 'store', which are determined through the
-        ``save_path`` keyword. In interactive mode (default) the plot is shown at runtime
-        and the program execution stops until the plot window is closed manually. In
-        store mode the generated plot is stored to disk and no manually interaction is
-        needed.
+        Causes plots to spawn in 'interactive' mode. To skip interactive mode and store figures instead,
+        set parameter `path`.
 
         Parameters
         ----------

@@ -422,7 +422,7 @@ class ResamplingMixin(ValidatePublicMembers):
     def reindex(
         self: SaQC,
         field: SaQCFields,
-        index: FreqStr | pd.DatetimeIndex | str,
+        index: FreqStr | pd.DatetimeIndex | SaQCColumns,
         method: METHOD_LITERALS = "match",
         tolerance: OffsetStr | OffsetLike | None = None,
         data_aggregation: AGG_FUNC_LITERALS | Callable | float | None = None,

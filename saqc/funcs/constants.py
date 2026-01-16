@@ -53,15 +53,15 @@ class ConstantsMixin(ValidatePublicMembers):
 
         Parameters
         ----------
-        thresh : float
+        thresh :
             Maximum total change allowed per window.
 
-        window : int or str
+        window :
             Size of the rolling window. If an integer is passed, it represents the number
             of timestamps per window. If an offset string is passed, it represents the windows
             total temporal extent.
 
-        min_periods : int
+        min_periods :
             Minimum number of valid timestamps that are necessary to be present in any window, in order to trigger condition testing for this window.
             Windows with fewer timestamps are skipped. Must be >= 2, because a single
             value is always considered constant.
