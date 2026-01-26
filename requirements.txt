@@ -11,6 +11,7 @@ numpy==2.2.6
 outlier-utils==0.0.5
 pyarrow==21.0.0
 pandas==2.3.2
+polars==1.37.1
 scikit-learn==1.7.1
 # would be good to also upgrade
 scipy==1.14.1
