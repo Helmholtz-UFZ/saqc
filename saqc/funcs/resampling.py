@@ -20,7 +20,7 @@ import saqc.constants
 from saqc.constants import UNFLAGGED
 from saqc.core import History, register
 from saqc.lib.docs import DOC_TEMPLATES
-from saqc.lib.tools import getFreqDelta
+from saqc.lib.tools import getFreqDelta, getSharedIndex, makeUniformIndex
 from saqc.lib.ts_operators import isValid
 from saqc.lib.types import (
     AGG_FUNC_LITERALS,
@@ -278,23 +278,11 @@ class ResamplingMixin(ValidatePublicMembers):
                 # frequency defined target index
                 if len(datcol) == 0:
                     return pd.DatetimeIndex([]), idx_source, datcol
-                idx_first = idx_source[0]
-                idx_last = idx_source[-1]
+                idx = makeUniformIndex(idx_source, idx)
 
-                if isinstance(idx, str):
-                    idx = pd.to_timedelta(idx)
-
-                if isinstance(idx, pd.Timedelta):
-                    idx = pd.date_range(
-                        idx_first.floor(idx), idx_last.ceil(idx), freq=idx
-                    )
-                else:
-                    raise ValueError(
-                        f"cant make an index out of parameter 'idx's value: {idx}"
-                    )
         return idx, idx_source, datcol
 
-    @register(mask=["field"], demask=[], squeeze=[])
+    @register(mask=["field"], demask=[], squeeze=[], multivariate=True)
     def resample(
         self: SaQC,
         field: SaQCFields,
@@ -357,59 +345,60 @@ class ResamplingMixin(ValidatePublicMembers):
             Same as `maxna` but for consecutive NaNs.
         """
         validator = None
-        if (maxna_group is not None) or (maxna is not None):
-            validator = lambda x: isValid(
-                x, max_nan_total=maxna, max_nan_consec=maxna_group
-            )
-            tmp_val_field = str(uuid.uuid4())
-            # parametrise reindexer for the interval validation:
-            # we check any interval for sufficing the maxna and maxnagroup condition
-            # broadcast is set to False, since we mimic "pandas resample"
+        idx = getSharedIndex(self.data[field], how="outer")
+        idx = makeUniformIndex(idx, freq)
+        for f in field:
+            if (maxna_group is not None) or (maxna is not None):
+                validator = lambda x: isValid(
+                    x, max_nan_total=maxna, max_nan_consec=maxna_group
+                )
+                tmp_val_field = str(uuid.uuid4())
+                # parametrise reindexer for the interval validation:
+                # we check any interval for sufficing the maxna and maxnagroup condition
+                # broadcast is set to False, since we mimic "pandas resample"
+                self = self.reindex(
+                    f,
+                    target=tmp_val_field,
+                    index=freq,
+                    method=method,
+                    data_aggregation=validator,
+                    broadcast=False,
+                    **kwargs,
+                )
+            # repeat the reindexing with the resampling func func
             self = self.reindex(
-                field,
-                target=tmp_val_field,
-                index=freq,
+                f,
+                index=idx,
                 method=method,
-                data_aggregation=validator,
+                data_aggregation=func,
+                squeeze=squeeze,
+                overrride=True,
                 broadcast=False,
                 **kwargs,
             )
-        # repeat the reindexing with the resampling func func
-        self = self.reindex(
-            field,
-            index=freq,
-            method=method,
-            data_aggregation=func,
-            squeeze=squeeze,
-            overrride=True,
-            broadcast=False,
-            **kwargs,
-        )
-        if validator is not None:
-            # where the validation returned False, overwrite the resampling result:
-            self = self.processGeneric(
-                [field, tmp_val_field],
-                target=field,
-                func=lambda x, y: x.where(y.astype(bool), np.nan),
-            )
-            self = self.dropField(tmp_val_field)
-            self._flags.history[field] = self._flags.history[field][:, :-1]
-        r_meta = {
-            "field": field,
-            "func": "resample",
-            "args": (),
-            "kwargs": {
-                "freq": freq,
-                "func": func,
-                "method": method,
-                "maxna": maxna,
-                "maxna_group": maxna_group,
-                **kwargs,
-            },
-        }
-        self._flags.history[field].meta = self._flags.history[field].meta[:-1] + [
-            r_meta
-        ]
+            if validator is not None:
+                # where the validation returned False, overwrite the resampling result:
+                self = self.processGeneric(
+                    [f, tmp_val_field],
+                    target=f,
+                    func=lambda x, y: x.where(y.astype(bool), np.nan),
+                )
+                self = self.dropField(tmp_val_field)
+                self._flags.history[f] = self._flags.history[f][:, :-1]
+            r_meta = {
+                "field": f,
+                "func": "resample",
+                "args": (),
+                "kwargs": {
+                    "freq": freq,
+                    "func": func,
+                    "method": method,
+                    "maxna": maxna,
+                    "maxna_group": maxna_group,
+                    **kwargs,
+                },
+            }
+            self._flags.history[f].meta = self._flags.history[f].meta[:-1] + [r_meta]
 
         return self
 
