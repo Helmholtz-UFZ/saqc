@@ -22,7 +22,7 @@ from saqc.funcs.resampling import (
     _reindexer,
     _rollingReindexer,
 )
-from saqc.lib.tools import toSequence
+from saqc.lib.tools import getSharedIndex, toSequence
 from tests.common import checkInvariants
 from tests.fixtures import data
 
@@ -468,3 +468,21 @@ def test_aggregationGrouper(method, tolerance, expected):
     )
     assert (method == "nshift") or (result.index.equals(idx_source))
     assert np.array_equal(result.values, expected, equal_nan=True)
+
+
+def test_mvAlignment():
+    idx1 = pd.date_range("2000", periods=5, freq="4.5min")
+    idx2 = pd.date_range("2000", periods=4, freq="10min")
+    idx3 = pd.date_range("2000", periods=100, freq="1min")
+    dat1 = pd.Series(1, index=idx1, name="dat1")
+    dat2 = pd.Series(2, index=idx2, name="dat2")
+    dat3 = pd.Series(3, index=idx3, name="dat3")
+    qc = SaQC([dat1, dat2, dat3])
+    result = qc.align(["dat1", "dat2", "dat3"], freq="3min").data
+    assert getSharedIndex(result, how="inner").equals(
+        getSharedIndex(result, how="outer")
+    )
+    result = qc.resample(["dat1", "dat2", "dat3"], freq="3min").data
+    assert getSharedIndex(result, how="inner").equals(
+        getSharedIndex(result, how="outer")
+    )

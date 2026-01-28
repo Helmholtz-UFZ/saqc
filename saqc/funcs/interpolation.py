@@ -16,7 +16,7 @@ from typing_extensions import Literal
 from saqc import UNFLAGGED
 from saqc.core import register
 from saqc.core.history import History
-from saqc.lib.tools import isflagged
+from saqc.lib.tools import getSharedIndex, isflagged, makeUniformIndex
 from saqc.lib.ts_operators import interpolateNANs
 from saqc.lib.types import (
     AGG_FUNC_LITERALS,
@@ -157,7 +157,7 @@ class InterpolationMixin(ValidatePublicMembers):
 
         return self
 
-    @register(mask=["field"], demask=[], squeeze=[])
+    @register(mask=["field"], demask=[], squeeze=[], multivariate=True)
     def align(
         self: SaQC,
         field: SaQCFields,
@@ -192,7 +192,8 @@ class InterpolationMixin(ValidatePublicMembers):
         Resample data and flags at uniform frequency.
 
         Convert a time series to a specified frequency, interpolating or imputing values and flags
-        according to the chosen method.
+        according to the chosen method. Calling with field being a list of field names results in the results sharing
+        one index.
 
         Parameters
         ----------
@@ -200,6 +201,7 @@ class InterpolationMixin(ValidatePublicMembers):
             New sampling rate.
 
             The sampling frequency data is transformed to align with.
+            If a list of fields is passed, all the fields will be aligned to the same index.
 
         method :
             Sampling method.
@@ -242,15 +244,19 @@ class InterpolationMixin(ValidatePublicMembers):
         else:
             data_agg_func = DATA_REINDEXER.get(method, None)
 
-        self = self.reindex(
-            field,
-            index=freq,
-            tolerance=freq,
-            method=method,
-            override=overwrite,
-            data_aggregation=data_agg_func,
-            **kwargs,
-        )
+        idx = getSharedIndex(self.data[field], how="outer")
+        idx = makeUniformIndex(idx, freq)
+
+        for f in field:
+            self = self.reindex(
+                f,
+                index=idx,
+                tolerance=freq,
+                method=method,
+                override=overwrite,
+                data_aggregation=data_agg_func,
+                **kwargs,
+            )
         return self
 
 

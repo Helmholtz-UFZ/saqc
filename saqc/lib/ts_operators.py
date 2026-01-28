@@ -9,6 +9,7 @@
 """
 The module gathers all kinds of timeseries tranformations.
 """
+
 import sys
 
 import numpy as np

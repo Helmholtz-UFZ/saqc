@@ -627,14 +627,38 @@ def getUnionIndex(obj, default: pd.DatetimeIndex | None = None):
     return default
 
 
-def getSharedIndex(obj, default: pd.DatetimeIndex | None = None):
+def getSharedIndex(
+    obj,
+    default: pd.DatetimeIndex | None = None,
+    how: Literal["inner", "outer"] = "inner",
+):
     assert hasattr(obj, "columns")
     if default is None:
         default = pd.DatetimeIndex([])
     indexes = [obj[k].index for k in obj.columns]
     if indexes:
-        return functools.reduce(pd.Index.intersection, indexes).sort_values()
+        if how == "inner":
+            return functools.reduce(pd.Index.intersection, indexes).sort_values()
+        if how == "outer":
+            return functools.reduce(pd.Index.union, indexes).sort_values()
     return default
+
+
+def makeUniformIndex(idx, freq):
+    if len(idx) == 0:
+        return idx
+    uniform_first = idx[0]
+    uniform_last = idx[-1]
+
+    if isinstance(freq, str):
+        freq = pd.to_timedelta(freq)
+
+    if isinstance(freq, pd.Timedelta):
+        return pd.date_range(
+            uniform_first.floor(freq), uniform_last.ceil(freq), freq=freq
+        )
+    else:
+        raise ValueError(f"cant make an index out of parameter 'idx's value: {freq}")
 
 
 def isAllBoolean(obj: Any):
