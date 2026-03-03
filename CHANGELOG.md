@@ -11,10 +11,17 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Added
 - Support for tuples and dictionaries in config files
 - `start_date` and `end_date` keyword arguments can be used to determine seasonal masks
+- history access tools added to `saqc.lib.tools`
+  - `getHist` (retrieve a fields history dataframe)
+  - `getMeta` (retrieve a fields meta list)
+  - `getHistByKwarg` (retrieve a specific history Series of a fields)
+- `start_date` and `end_date` keyword arguments can be used to determine seasonal masks
 - data types `TimestampStr`, `DateIndexStr`, `PathStr`
 ### Changed
+- `SaQC.setFlags`: parameter `override` now defaults to True
 - `SaQC.flagRange`: Make the parameters `min` and `max` optional
 - `SaQC.resample`: fixed redundant resampling window validation
+- `start_date` and `end_date` keywords get passed through if function does not mask field.
 - `SaQC.resample`: passing list of fields ensures unified alignment index in the results
 - `SaQC.align`: passing list of fields ensures unified alignment index in the results
 ### Removed

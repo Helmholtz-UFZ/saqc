@@ -478,6 +478,12 @@ def register(
             if "target" in kwargs and kwargs["target"] is None:
                 kwargs.pop("target")
 
+            if len(mask) == 0:
+                if start_date is not None:
+                    kwargs["start_date"] = start_date
+                if end_date is not None:
+                    kwargs["end_date"] = end_date
+
             kwargs = normalizeKwargs(func_signature, args, kwargs, flag, saqc)
             fields, targets = resolveFieldsTargets(
                 saqc, field, regex, kwargs, multivariate, handles_target

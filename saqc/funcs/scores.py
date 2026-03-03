@@ -36,6 +36,46 @@ from saqc.lib.types import (
 from saqc.parsing.environ import ENV_OPERATORS
 
 
+def _density(
+    vals: pd.Series, p: int, fill_na: bool, density: float | Literal["auto"] = "auto"
+):
+    """
+    Derive differential for time dimension of uniLOF input data
+
+    Parameters
+    ----------
+    vals:
+        A pandas Series containing the input data to calculate density for.
+    p:
+        exponential koefficient.
+    fill_na:
+        A boolean flag indicating whether missing values in the input
+        series should be interpolated.
+    density: Either a floating-point density value to be used directly or a special
+        string value "auto" to derive density based on input data characteristics.
+
+    Returns
+    -------
+    A tuple containing the calculated density (as a float), the density series
+        (as a pandas Series), the potentially updated pandas Series after interpolation,
+        and a boolean pandas Series indicating which values were interpolated.
+    """
+    if fill_na:
+        filled = vals.isna()
+        vals = vals.interpolate("linear")
+        filled = filled & vals.notna()
+    else:
+        filled = pd.Series(False, index=vals.index)
+
+    if density == "auto":
+        v_diff = (vals**p).diff()
+        density = v_diff.abs().median()
+        if density == 0:
+            density = v_diff[v_diff != 0].abs().median()
+    density_ser = pd.Series(np.arange(len(vals)) * density, index=vals.index)
+    return density, density_ser, vals, filled
+
+
 def _kNNApply(vals, n_neighbors, func=np.sum, **kwargs):
     dist, *_ = kNN(vals, n_neighbors=n_neighbors, **kwargs)
     try:
@@ -161,10 +201,10 @@ def _univarScoring(
         Function to calculate the center moment in every window.
     norm_func : default mean
         Function to calculate the scaling for every window
-    center
+    center :
         Weather or not to center the target value in the scoring window. If `False`, the
         target value is the last value in the window.
-    min_periods
+    min_periods :
         Minimum number of valid meassurements in a scoring window, to consider the resulting score valid.
     """
     if isinstance(model_func, str):
@@ -583,24 +623,7 @@ class ScoresMixin(ValidatePublicMembers):
 
         vals = self._data[field]
 
-        if fill_na:
-            filled = vals.isna()
-            vals = vals.interpolate("linear")
-            filled = filled & vals.notna()
-        else:
-            filled = pd.Series(False, index=vals.index)
-
-        if density == "auto":
-            v_diff = (vals**p).diff()
-            density = v_diff.abs().median()
-            if density == 0:
-                density = v_diff[v_diff != 0].abs().median()
-        elif isinstance(density, Callable):
-            density = density(vals)
-        elif isinstance(density, pd.Series):
-            density = density.values
-
-        d_var = pd.Series(np.arange(len(vals)) * density, index=vals.index)
+        density, d_var, vals, filled = _density(vals, p, fill_na, density)
         na_bool_ser = vals.isna() | d_var.isna()
         na_idx = na_bool_ser.index[na_bool_ser.values]
         # notna_bool = vals.notna()

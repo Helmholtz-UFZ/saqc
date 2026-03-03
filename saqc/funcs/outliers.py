@@ -118,6 +118,85 @@ def _stray(partition, min_periods, iter_start, alpha):
 
 
 class OutliersMixin(ValidatePublicMembers):
+    @flagging()
+    def _uniLOF(
+        self,
+        field,
+        n,
+        tmp_field,
+        slope_correct,
+        min_offset,
+        density,
+        flag,
+        para_check,
+        thresh,
+        corruption,
+        probability,
+        **kwargs,
+    ):
+        """
+        Helper Function for calculating univariate local outlier scores.
+
+        This block of the flagUniLOF computation is functionally wrapped separatly, so its
+        (costly) computational results can be cached and reused with different cutoffs
+        (in the context of optiSaQC)
+
+        Parameters are passsed on from the `flagUniLOF` parameterisation.
+        See `flagUniLOF` documentation for details on them, if desired.
+
+
+        """
+        s = self.data[tmp_field]
+        if para_check == 3:
+            corruption = int(-(len(self.data[field]) / max(n, 4)))
+        if thresh is not None:
+            if isinstance(thresh, str) and (thresh == "auto"):
+                _s = pd.concat([s, (-s - 2)])
+                s_mask = ((_s - _s.mean()) / _s.std()).iloc[: int(s.shape[0])].abs() > 3
+            else:
+                s_mask = s < -abs(thresh)
+        elif corruption is not None:
+            cutoff = _estimateCutoffProbability(probabilities=s, thresh=corruption)
+            s_mask = s <= -abs(cutoff)
+        elif probability is not None:
+            s_mask = s <= -abs(probability)
+
+        s_mask = ~isflagged(self._flags[field], kwargs["dfilter"]) & s_mask
+
+        if slope_correct:
+            g_mask = s_mask.diff()
+            g_mask = g_mask.cumsum()
+            dat = self._data[field]
+            od_groups = dat.interpolate("linear").groupby(by=g_mask)
+            first_vals = od_groups.first()
+            last_vals = od_groups.last()
+            max_vals = od_groups.max()
+            min_vals = od_groups.min()
+            if min_offset is None:
+                if density == "auto":
+                    d_diff = dat.diff()
+                    eps = d_diff.abs().median()
+                    if eps == 0:
+                        eps = d_diff[d_diff != 0].abs().median()
+                else:
+                    eps = density
+                eps = 3 * eps
+            else:
+                eps = min_offset
+            up_slopes = (min_vals + eps >= last_vals.shift(1)) & (
+                max_vals - eps <= first_vals.shift(-1)
+            )
+            down_slopes = (max_vals - eps <= last_vals.shift(1)) & (
+                min_vals + eps >= first_vals.shift(-1)
+            )
+            corrections = up_slopes | down_slopes
+            for s_id in corrections[corrections].index:
+                correct_idx = od_groups.get_group(s_id).index
+                s_mask[correct_idx] = False
+
+        self._flags[s_mask, field] = flag
+        return self
+
     @register(
         mask=["field"],
         demask=["field"],
@@ -380,7 +459,7 @@ class OutliersMixin(ValidatePublicMembers):
                 f'Only one (or none) of "thresh", "probability", "corruption" must be given, got: \n thresh: {thresh} \n probability: {probability} \n corruption: {corruption}'
             )
         tmp_field = str(uuid.uuid4())
-        qc = self.assignUniLOF(
+        self = self.assignUniLOF(
             field=field,
             target=tmp_field,
             n=n,
@@ -389,58 +468,25 @@ class OutliersMixin(ValidatePublicMembers):
             density=density,
             fill_na=fill_na,
             statistical_extent=0.997 if thresh is None else 1,
+            **kwargs,
         )
-        s = qc.data[tmp_field]
-        if para_check == 3:
-            corruption = int(-(len(self.data[field]) / max(n, 4)))
-        if thresh is not None:
-            if isinstance(thresh, str) and (thresh == "auto"):
-                _s = pd.concat([s, (-s - 2)])
-                s_mask = ((_s - _s.mean()) / _s.std()).iloc[: int(s.shape[0])].abs() > 3
-            else:
-                s_mask = s < -abs(thresh)
-        elif corruption is not None:
-            cutoff = _estimateCutoffProbability(probabilities=s, thresh=corruption)
-            s_mask = s <= -abs(cutoff)
-        elif probability is not None:
-            s_mask = s <= -abs(probability)
 
-        s_mask = ~isflagged(qc._flags[field], kwargs["dfilter"]) & s_mask
-
-        if slope_correct:
-            g_mask = s_mask.diff()
-            g_mask = g_mask.cumsum()
-            dat = self._data[field]
-            od_groups = dat.interpolate("linear").groupby(by=g_mask)
-            first_vals = od_groups.first()
-            last_vals = od_groups.last()
-            max_vals = od_groups.max()
-            min_vals = od_groups.min()
-            if min_offset is None:
-                if density == "auto":
-                    d_diff = dat.diff()
-                    eps = d_diff.abs().median()
-                    if eps == 0:
-                        eps = d_diff[d_diff != 0].abs().median()
-                else:
-                    eps = density
-                eps = 3 * eps
-            else:
-                eps = min_offset
-            up_slopes = (min_vals + eps >= last_vals.shift(1)) & (
-                max_vals - eps <= first_vals.shift(-1)
-            )
-            down_slopes = (max_vals - eps <= last_vals.shift(1)) & (
-                min_vals + eps >= first_vals.shift(-1)
-            )
-            corrections = up_slopes | down_slopes
-            for s_id in corrections[corrections].index:
-                correct_idx = od_groups.get_group(s_id).index
-                s_mask[correct_idx] = False
-
-        qc._flags[s_mask, field] = flag
-        qc = qc.dropField(tmp_field)
-        return qc
+        self = self._uniLOF(
+            field,
+            n,
+            tmp_field,
+            slope_correct,
+            min_offset,
+            density,
+            flag,
+            para_check,
+            thresh,
+            corruption,
+            probability,
+            **kwargs,
+        )
+        self = self.dropField(tmp_field)
+        return self
 
     @flagging()
     def flagRange(
@@ -777,7 +823,7 @@ class OutliersMixin(ValidatePublicMembers):
         field: SaQCFields,
         method: Literal["standard", "modified"] = "standard",
         window: FreqStr | (Int >= 0) | None = None,
-        thresh: Float > 0 = 3,
+        thresh: Float >= 0 = 3,
         min_residuals: (Float >= 0) | None = None,
         min_periods: (Int > 0) | None = None,
         center: bool = True,

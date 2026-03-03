@@ -15,6 +15,7 @@ from saqc.funcs.flagtools import FlagtoolsMixin
 from saqc.funcs.generic import GenericMixin
 from saqc.funcs.interpolation import InterpolationMixin
 from saqc.funcs.noise import NoiseMixin
+from saqc.funcs.optisaqc import OptiSaqcMixin
 from saqc.funcs.outliers import OutliersMixin
 from saqc.funcs.pattern import PatternMixin
 from saqc.funcs.resampling import ResamplingMixin
@@ -43,5 +44,6 @@ class FunctionsMixin(
     ScoresMixin,
     ToolsMixin,
     TransformationMixin,
+    OptiSaqcMixin,
 ):
     pass

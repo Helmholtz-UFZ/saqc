@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Callable, Literal, Optional
 
 import numpy as np
 import pandas as pd
+import scipy as sc
 
 from saqc.constants import BAD
 from saqc.core.register import flagging

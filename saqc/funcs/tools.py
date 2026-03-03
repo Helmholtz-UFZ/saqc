@@ -105,7 +105,7 @@ class ToolsMixin(ValidatePublicMembers):
             mpl.use(_MPL_DEFAULT_BACKEND)
         else:
             mpl.use("Agg")
-
+        ax_kwargs = kwargs.pop("ax_kwargs", {})
         # make base figure, the gui will wrap
         fig = makeFig(
             data=data,
@@ -115,10 +115,10 @@ class ToolsMixin(ValidatePublicMembers):
             mode="subplots",
             max_gap=max_gap,
             history="valid",
-            xscope=None,
-            ax_kwargs={"ncols": 1},
+            ax_kwargs=dict(ncols=1, **ax_kwargs),
             scatter_kwargs={},
             plot_kwargs={},
+            **kwargs,
         )
 
         overlay_data = []
@@ -559,6 +559,7 @@ class ToolsMixin(ValidatePublicMembers):
             ax_kwargs=ax_kwargs,
             scatter_kwargs=marker_kwargs,
             plot_kwargs=plot_kwargs,
+            **kwargs,
         )
 
         if ax is None and not path:
