@@ -66,6 +66,7 @@ def makeFig(
     ax_kwargs: dict | None = None,
     scatter_kwargs: dict | None = None,
     plot_kwargs: dict | None = None,
+    **kwargs,
 ):
     """
     Returns a figure object, containing data graph with flag marks for field.
@@ -156,7 +157,10 @@ def makeFig(
         figure object.
 
     """
-    xscope = xscope or slice(xscope)
+    if ("start_date" in kwargs) or ("end_date" in kwargs):
+        xscope = slice(kwargs.get("start_date", None), kwargs.get("end_date", None))
+    else:
+        xscope = xscope or slice(xscope)
     # data retrieval
     d = dict()
     na_mask = {}

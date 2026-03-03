@@ -73,7 +73,7 @@ class DriftMixin(ValidatePublicMembers):
         that members of a normal group must not exceed. In addition, only a group is considered
         "normal" if it contains more than `frac` percent of the variables in "field".
 
-        See the Notes section for a more detailed presentation of the algorithm
+        See the Notes section for a more detailed presentation of the algorithm.
 
         Parameters
         ----------

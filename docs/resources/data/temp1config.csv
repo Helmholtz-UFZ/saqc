@@ -1,0 +1,9 @@
+varname                                             ;test
+#---------------------------------------------------;--------------------------------------------------
+VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2             ;copyField(target='VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2__TEMP_0', label='outlier', overwrite=False)
+VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2__TEMP_0     ;fitLowpassFilter(target='VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2__TEMP_0_M_0', cutoff=0.00999999000000007, label='outlier', nyq=0.5, filter_order=2, fill_method='linear')
+VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2__TEMP_0     ;processGeneric(field=['VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2__TEMP_0_M_0', 'VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2__TEMP_0'], func=(VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2__TEMP_0_M_0 - VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2__TEMP_0), label='outlier')
+VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2__TEMP_0_M_0 ;dropField(label='outlier')
+VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2__TEMP_0     ;flagZScore(thresh=3.12141934658076, window='920min', min_residuals=0.0806356259145716, method='standard', label='outlier', min_periods=None, center=True, axis=0)
+VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2__TEMP_0     ;transferFlags(target='VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2', squeeze=False, label='outlier', overwrite=False)
+VAR62f3eeeb_3d1c_4c60_87be_ac3f35f4a2f2__TEMP_0     ;dropField(label='outlier')

@@ -736,3 +736,40 @@ def multivariateParameters(
         )
 
     return fields, targets, broadcasting
+
+
+def getHist(qc, icol: int = None):
+    if icol is None:
+        icol = slice(None)
+    field = qc.data.columns[0]
+    return qc._flags.history[field].hist.iloc[:, icol]
+
+
+def getMeta(qc, icol: int = None):
+    if icol is None:
+        icol = slice(None)
+    field = qc.data.columns[0]
+    return qc._flags.history[field].meta[icol]
+
+
+def getHistByKwarg(qc, entry, kwarg="label"):
+    meta = getMeta(qc)
+    for col, meta_e in enumerate(meta):
+        if entry == meta_e.get("kwargs", {}).get(kwarg, ""):
+            return getHist(qc, col), col
+    return None, None
+
+
+def timedeltaToOffset(td):
+    unit = td.resolution_string
+    seconds = td.total_seconds()
+    if unit in ["d", "D"]:
+        return f"{int(seconds // 86400)}D"
+    elif unit in ["h", "H"]:
+        return f"{int(seconds // 3600)}h"
+    elif unit in ["min"]:
+        return f"{int(seconds // 60)}min"
+    elif unit in ["s"]:
+        return f"{int(seconds)}s"
+    else:
+        return f"{seconds}s"

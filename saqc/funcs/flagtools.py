@@ -98,7 +98,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         self: SaQC,
         field: SaQCFields,
         data: SaQCColumns | list | ArrayLike | pd.Series,
-        override: bool = False,
+        override: bool = True,
         flag: float = BAD,
         **kwargs,
     ) -> SaQC:

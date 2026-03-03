@@ -17,6 +17,7 @@ Cook Books
    ResidualOutlierDetection
    DriftDetection
    MultivariateFlagging
+   CalibratingPipelines
    ../documentation/GenericFunctions
 
 
@@ -84,3 +85,12 @@ Cook Books
       * project the result onto the original data
       +++
       *How to derive flagging assertions from error models*
+
+   .. grid-item-card:: Calibrating Flagging Pipelines
+      :link: CalibratingPipelines
+      :link-type: doc
+
+      * Assign exemplary flags, methods are calibrated with
+      * calibrate to imported flags information
+      +++
+      *Fitting compositions of flagging methods to example flags*
