@@ -36,7 +36,7 @@ non-generic counterparts. The basic signature looks like that:
 where ``<expression>`` is either a callable (Python API) or an expression
 composed of the `supported constructs`_
 and ``<flag_constant>`` is either one of the predefined
-:ref:`flagging constants <modules/saqcConstants:Flagging Constants>`
+:ref:`flagging constants <saqc_constants>`
 (default: ``BAD``\ ) or a valid value of the chosen flagging scheme. Generic flagging functions
 are expected to return a collection of boolean values, i.e. one ``True`` or ``False`` for every
 value in ``field``. All other expressions will fail during runtime of SaQC.
@@ -54,7 +54,7 @@ dummy dataset, to lead us through the following code snippets:
    from saqc.parsing.reader import _ConfigReader as ConfigReader
 
 .. testcode:: python
-              
+
    from saqc import SaQC
 
    x = np.array([12, 87, 45, 31, 18, 99])
@@ -69,14 +69,14 @@ dummy dataset, to lead us through the following code snippets:
 .. doctest:: python
 
    >>> qc.data  #doctest:+NORMALIZE_WHITESPACE
-                x |               y |              z | 
-   ============== | =============== | ============== | 
-   2020-01-01  12 | 2020-01-01    2 | 2020-01-01  34 | 
-   2020-01-02  87 | 2020-01-02   12 | 2020-01-02  23 | 
-   2020-01-03  45 | 2020-01-03   33 | 2020-01-03  89 | 
-   2020-01-04  31 | 2020-01-04  133 | 2020-01-04  56 | 
-   2020-01-05  18 | 2020-01-05    8 | 2020-01-05   5 | 
-   2020-01-06  99 | 2020-01-06   33 | 2020-01-06   1 | 
+                x |               y |              z |
+   ============== | =============== | ============== |
+   2020-01-01  12 | 2020-01-01    2 | 2020-01-01  34 |
+   2020-01-02  87 | 2020-01-02   12 | 2020-01-02  23 |
+   2020-01-03  45 | 2020-01-03   33 | 2020-01-03  89 |
+   2020-01-04  31 | 2020-01-04  133 | 2020-01-04  56 |
+   2020-01-05  18 | 2020-01-05    8 | 2020-01-05   5 |
+   2020-01-06  99 | 2020-01-06   33 | 2020-01-06   1 |
 
 
 Simple constraints
@@ -93,22 +93,22 @@ Simple constraints
         qc1 = qc.flagGeneric(field="x", func=lambda x: x < 30)
 
      .. doctest:: python
-        
+
         >>> qc1.flags  #doctest:+NORMALIZE_WHITESPACE
-                        x |               y |               z | 
-        ================= | =============== | =============== | 
-        2020-01-01  255.0 | 2020-01-01 -inf | 2020-01-01 -inf | 
-        2020-01-02   -inf | 2020-01-02 -inf | 2020-01-02 -inf | 
-        2020-01-03   -inf | 2020-01-03 -inf | 2020-01-03 -inf | 
-        2020-01-04   -inf | 2020-01-04 -inf | 2020-01-04 -inf | 
-        2020-01-05  255.0 | 2020-01-05 -inf | 2020-01-05 -inf | 
-        2020-01-06   -inf | 2020-01-06 -inf | 2020-01-06 -inf | 
+                        x |               y |               z |
+        ================= | =============== | =============== |
+        2020-01-01  255.0 | 2020-01-01 -inf | 2020-01-01 -inf |
+        2020-01-02   -inf | 2020-01-02 -inf | 2020-01-02 -inf |
+        2020-01-03   -inf | 2020-01-03 -inf | 2020-01-03 -inf |
+        2020-01-04   -inf | 2020-01-04 -inf | 2020-01-04 -inf |
+        2020-01-05  255.0 | 2020-01-05 -inf | 2020-01-05 -inf |
+        2020-01-06   -inf | 2020-01-06 -inf | 2020-01-06 -inf |
 
    .. tab:: Configuration
 
      .. code-block::
 
-        varname ; test                    
+        varname ; test
         #-------;------------------------
         x       ; flagGeneric(func=x < 30)
 
@@ -117,7 +117,7 @@ Simple constraints
 
         >>> tmp = ConfigReader(data).readString(
         ...         """
-        ...         varname ; test                    
+        ...         varname ; test
         ...         #-------;------------------------
         ...         x       ; flagGeneric(func=x < 30)
         ...         """
@@ -138,20 +138,20 @@ Cross variable constraints
    .. tab:: API
 
      .. testcode:: python
-        
+
         qc2 = qc.flagGeneric(field="y", target="x", func=lambda y: y > 30)
 
      .. doctest:: python
-        
+
         >>> qc2.flags  #doctest:+NORMALIZE_WHITESPACE
-                        x |               y |               z | 
-        ================= | =============== | =============== | 
-        2020-01-01   -inf | 2020-01-01 -inf | 2020-01-01 -inf | 
-        2020-01-02   -inf | 2020-01-02 -inf | 2020-01-02 -inf | 
-        2020-01-03  255.0 | 2020-01-03 -inf | 2020-01-03 -inf | 
-        2020-01-04  255.0 | 2020-01-04 -inf | 2020-01-04 -inf | 
-        2020-01-05   -inf | 2020-01-05 -inf | 2020-01-05 -inf | 
-        2020-01-06  255.0 | 2020-01-06 -inf | 2020-01-06 -inf | 
+                        x |               y |               z |
+        ================= | =============== | =============== |
+        2020-01-01   -inf | 2020-01-01 -inf | 2020-01-01 -inf |
+        2020-01-02   -inf | 2020-01-02 -inf | 2020-01-02 -inf |
+        2020-01-03  255.0 | 2020-01-03 -inf | 2020-01-03 -inf |
+        2020-01-04  255.0 | 2020-01-04 -inf | 2020-01-04 -inf |
+        2020-01-05   -inf | 2020-01-05 -inf | 2020-01-05 -inf |
+        2020-01-06  255.0 | 2020-01-06 -inf | 2020-01-06 -inf |
 
      We introduce another selection parameter, namely ``target``. While ``field`` is still used to select
      a variable from the dataset, which is subsequently passed to the given function ``func``, ``target`` names the
@@ -161,7 +161,7 @@ Cross variable constraints
 
      .. code-block::
 
-        varname ; test                    
+        varname ; test
         #-------;------------------------------------
         x       ; flagGeneric(field="y", func=y > 30)
 
@@ -175,7 +175,7 @@ Cross variable constraints
 
         >>> tmp = ConfigReader(data).readString(
         ...         """
-        ...         varname ; test                    
+        ...         varname ; test
         ...         #-------;------------------------------------
         ...         x       ; flagGeneric(field="y", func=y > 30)
         ...         """
@@ -186,10 +186,10 @@ Cross variable constraints
 
 Multiple cross variable constraints
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- 
+
 **Task**: Flag all values of ``x`` where ``y`` is larger than 30 and ``z`` is smaller than 50:
 
-In order to pass multiple variables to ``func``, we need to also specify multiple ``field`` elements. 
+In order to pass multiple variables to ``func``, we need to also specify multiple ``field`` elements.
 Note: to combine boolean expressions using one the available `logical operators`_, they single expressions
 need to be put in parentheses.
 
@@ -198,20 +198,20 @@ need to be put in parentheses.
    .. tab:: API
 
      .. testcode:: python
-        
+
         qc3 = qc.flagGeneric(field=["y", "z"], target="x", func=lambda y, z: (y > 30) & (z < 50))
 
      .. doctest:: python
-        
+
         >>> qc3.flags  #doctest:+NORMALIZE_WHITESPACE
-                        x |               y |               z | 
-        ================= | =============== | =============== | 
-        2020-01-01   -inf | 2020-01-01 -inf | 2020-01-01 -inf | 
-        2020-01-02   -inf | 2020-01-02 -inf | 2020-01-02 -inf | 
-        2020-01-03   -inf | 2020-01-03 -inf | 2020-01-03 -inf | 
-        2020-01-04   -inf | 2020-01-04 -inf | 2020-01-04 -inf | 
-        2020-01-05   -inf | 2020-01-05 -inf | 2020-01-05 -inf | 
-        2020-01-06  255.0 | 2020-01-06 -inf | 2020-01-06 -inf | 
+                        x |               y |               z |
+        ================= | =============== | =============== |
+        2020-01-01   -inf | 2020-01-01 -inf | 2020-01-01 -inf |
+        2020-01-02   -inf | 2020-01-02 -inf | 2020-01-02 -inf |
+        2020-01-03   -inf | 2020-01-03 -inf | 2020-01-03 -inf |
+        2020-01-04   -inf | 2020-01-04 -inf | 2020-01-04 -inf |
+        2020-01-05   -inf | 2020-01-05 -inf | 2020-01-05 -inf |
+        2020-01-06  255.0 | 2020-01-06 -inf | 2020-01-06 -inf |
 
      The mapping
      from ``field`` to the ``lambda`` function parameters is positional and not bound to names. That means
@@ -220,7 +220,7 @@ need to be put in parentheses.
 
      .. code-block::
 
-        varname ; test                    
+        varname ; test
         #-------;--------------------------------------------------------
         x       ; flagGeneric(field=["y", "z"], func=(y > 30) & (z < 50))
 
@@ -236,7 +236,7 @@ need to be put in parentheses.
 
         >>> tmp = ConfigReader(data).readString(
         ...         """
-        ...         varname ; test                    
+        ...         varname ; test
         ...         #-------;--------------------------------------------------------
         ...         x       ; flagGeneric(field=["y", "z"], func=(y > 30) & (z < 50))
         ...         """
@@ -260,15 +260,15 @@ Arithmetics
       .. doctest:: python
 
          >>> qc4.flags  #doctest:+NORMALIZE_WHITESPACE
-                         x |               y |               z | 
-         ================= | =============== | =============== | 
-         2020-01-01   -inf | 2020-01-01 -inf | 2020-01-01 -inf | 
-         2020-01-02  255.0 | 2020-01-02 -inf | 2020-01-02 -inf | 
-         2020-01-03   -inf | 2020-01-03 -inf | 2020-01-03 -inf | 
-         2020-01-04   -inf | 2020-01-04 -inf | 2020-01-04 -inf | 
-         2020-01-05  255.0 | 2020-01-05 -inf | 2020-01-05 -inf | 
-         2020-01-06  255.0 | 2020-01-06 -inf | 2020-01-06 -inf |               
-     
+                         x |               y |               z |
+         ================= | =============== | =============== |
+         2020-01-01   -inf | 2020-01-01 -inf | 2020-01-01 -inf |
+         2020-01-02  255.0 | 2020-01-02 -inf | 2020-01-02 -inf |
+         2020-01-03   -inf | 2020-01-03 -inf | 2020-01-03 -inf |
+         2020-01-04   -inf | 2020-01-04 -inf | 2020-01-04 -inf |
+         2020-01-05  255.0 | 2020-01-05 -inf | 2020-01-05 -inf |
+         2020-01-06  255.0 | 2020-01-06 -inf | 2020-01-06 -inf |
+
    .. tab:: Configuration
 
       .. code-block::
@@ -277,7 +277,7 @@ Arithmetics
          #-------;-------------------------------------------------------
          x       ; flagGeneric(field=["x", "y", "z"], func=x > (y + z)/2)
 
-      
+
       :py:meth:`flagGeneric <saqq.SaQC.flagGeneric>` supports the usual `arithmetic operators`_.
 
      .. doctest:: python
@@ -311,18 +311,18 @@ Special functions
       .. doctest:: python
 
          >>> qc5.flags  #doctest:+NORMALIZE_WHITESPACE
-                         x |               y |               z | 
-         ================= | =============== | =============== | 
-         2020-01-01   -inf | 2020-01-01 -inf | 2020-01-01 -inf | 
-         2020-01-02  255.0 | 2020-01-02 -inf | 2020-01-02 -inf | 
-         2020-01-03   -inf | 2020-01-03 -inf | 2020-01-03 -inf | 
-         2020-01-04   -inf | 2020-01-04 -inf | 2020-01-04 -inf | 
-         2020-01-05   -inf | 2020-01-05 -inf | 2020-01-05 -inf | 
-         2020-01-06  255.0 | 2020-01-06 -inf | 2020-01-06 -inf | 
-                
+                         x |               y |               z |
+         ================= | =============== | =============== |
+         2020-01-01   -inf | 2020-01-01 -inf | 2020-01-01 -inf |
+         2020-01-02  255.0 | 2020-01-02 -inf | 2020-01-02 -inf |
+         2020-01-03   -inf | 2020-01-03 -inf | 2020-01-03 -inf |
+         2020-01-04   -inf | 2020-01-04 -inf | 2020-01-04 -inf |
+         2020-01-05   -inf | 2020-01-05 -inf | 2020-01-05 -inf |
+         2020-01-06  255.0 | 2020-01-06 -inf | 2020-01-06 -inf |
+
       The selected variables are passed to ``func`` as arguments of type ``pd.Series``, so all functions
       accepting such an argument can be used in generic expressions.
-     
+
    .. tab:: Configuration
 
       .. code-block::
@@ -365,14 +365,14 @@ Special functions
       .. doctest:: python
 
          >>> qc6.flags  #doctest:+NORMALIZE_WHITESPACE
-                         x |                 y |               z | 
-         ================= | ================= | =============== | 
-         2020-01-01  255.0 | 2020-01-01  255.0 | 2020-01-01 -inf | 
-         2020-01-02   -inf | 2020-01-02   -inf | 2020-01-02 -inf | 
-         2020-01-03   -inf | 2020-01-03   -inf | 2020-01-03 -inf | 
-         2020-01-04  255.0 | 2020-01-04  255.0 | 2020-01-04 -inf | 
-         2020-01-05  255.0 | 2020-01-05  255.0 | 2020-01-05 -inf | 
-         2020-01-06   -inf | 2020-01-06   -inf | 2020-01-06 -inf |     
+                         x |                 y |               z |
+         ================= | ================= | =============== |
+         2020-01-01  255.0 | 2020-01-01  255.0 | 2020-01-01 -inf |
+         2020-01-02   -inf | 2020-01-02   -inf | 2020-01-02 -inf |
+         2020-01-03   -inf | 2020-01-03   -inf | 2020-01-03 -inf |
+         2020-01-04  255.0 | 2020-01-04  255.0 | 2020-01-04 -inf |
+         2020-01-05  255.0 | 2020-01-05  255.0 | 2020-01-05 -inf |
+         2020-01-06   -inf | 2020-01-06   -inf | 2020-01-06 -inf |
 
    .. tab:: Configuration
 
@@ -443,11 +443,11 @@ Let's consider the following dataset:
       .. doctest:: python
 
          >>> qc7.flags  #doctest:+NORMALIZE_WHITESPACE
-                               meas |                      fan |                     volt | 
-         ========================== | ======================== | ======================== | 
-         2018-06-01 12:00:00   -inf | 2018-06-01 12:00:00 -inf | 2018-06-01 12:00:00 -inf | 
-         2018-06-01 12:10:00  255.0 | 2018-06-01 12:10:00 -inf | 2018-06-01 12:10:00 -inf | 
-         2018-06-01 12:20:00  255.0 | 2018-06-01 12:20:00 -inf | 2018-06-01 12:20:00 -inf | 
+                               meas |                      fan |                     volt |
+         ========================== | ======================== | ======================== |
+         2018-06-01 12:00:00   -inf | 2018-06-01 12:00:00 -inf | 2018-06-01 12:00:00 -inf |
+         2018-06-01 12:10:00  255.0 | 2018-06-01 12:10:00 -inf | 2018-06-01 12:10:00 -inf |
+         2018-06-01 12:20:00  255.0 | 2018-06-01 12:20:00 -inf | 2018-06-01 12:20:00 -inf |
          2018-06-01 12:30:00   -inf | 2018-06-01 12:30:00 -inf | 2018-06-01 12:30:00 -inf |
 
    .. tab:: Configuration
@@ -490,11 +490,11 @@ But we could also quality check our independent variables first and than leverag
       .. doctest:: python
 
          >>> qc8.flags  #doctest:+NORMALIZE_WHITESPACE
-                               meas |                        fan |                       volt | 
-         ========================== | ========================== | ========================== | 
-         2018-06-01 12:00:00   -inf | 2018-06-01 12:00:00   -inf | 2018-06-01 12:00:00   -inf | 
-         2018-06-01 12:10:00  255.0 | 2018-06-01 12:10:00  255.0 | 2018-06-01 12:10:00   -inf | 
-         2018-06-01 12:20:00  255.0 | 2018-06-01 12:20:00   -inf | 2018-06-01 12:20:00  255.0 | 
+                               meas |                        fan |                       volt |
+         ========================== | ========================== | ========================== |
+         2018-06-01 12:00:00   -inf | 2018-06-01 12:00:00   -inf | 2018-06-01 12:00:00   -inf |
+         2018-06-01 12:10:00  255.0 | 2018-06-01 12:10:00  255.0 | 2018-06-01 12:10:00   -inf |
+         2018-06-01 12:20:00  255.0 | 2018-06-01 12:20:00   -inf | 2018-06-01 12:20:00  255.0 |
          2018-06-01 12:30:00   -inf | 2018-06-01 12:30:00   -inf | 2018-06-01 12:30:00   -inf |
 
    .. tab:: Configuration
@@ -528,15 +528,15 @@ But we could also quality check our independent variables first and than leverag
 Generic Processing
 ------------------
 
-Generic processing functions provide a way to evaluate mathematical operations 
+Generic processing functions provide a way to evaluate mathematical operations
 and functions on the variables of a given dataset.
 
 Why
 ^^^
 
-In many real-world use cases, quality control is embedded into a larger data 
-processing pipeline. It is not unusual to even have certain processing 
-requirements as a part of the quality control itself. Generic processing 
+In many real-world use cases, quality control is embedded into a larger data
+processing pipeline. It is not unusual to even have certain processing
+requirements as a part of the quality control itself. Generic processing
 functions make it easy to enrich a dataset through the evaluation of a
 given expression.
 
@@ -559,7 +559,7 @@ Let's use :py:meth:`flagGeneric <saqq.SaQC.processGeneric>` to calculate the mea
 variables in a given dataset. We start with dummy data again:
 
 .. testcode:: python
-              
+
    from saqc import SaQC
 
    x = np.array([12, 87, 45, 31, 18, 99])
@@ -584,15 +584,15 @@ variables in a given dataset. We start with dummy data again:
         )
 
      .. doctest:: python
-        
+
         >>> qc1.data  #doctest:+NORMALIZE_WHITESPACE
-                     x |               y |              z |              mean | 
-        ============== | =============== | ============== | ================= | 
-        2020-01-01  12 | 2020-01-01    2 | 2020-01-01  34 | 2020-01-01   24.0 | 
-        2020-01-02  87 | 2020-01-02   12 | 2020-01-02  23 | 2020-01-02   61.0 | 
-        2020-01-03  45 | 2020-01-03   33 | 2020-01-03  89 | 2020-01-03   83.5 | 
-        2020-01-04  31 | 2020-01-04  133 | 2020-01-04  56 | 2020-01-04  110.0 | 
-        2020-01-05  18 | 2020-01-05    8 | 2020-01-05   5 | 2020-01-05   15.5 | 
+                     x |               y |              z |              mean |
+        ============== | =============== | ============== | ================= |
+        2020-01-01  12 | 2020-01-01    2 | 2020-01-01  34 | 2020-01-01   24.0 |
+        2020-01-02  87 | 2020-01-02   12 | 2020-01-02  23 | 2020-01-02   61.0 |
+        2020-01-03  45 | 2020-01-03   33 | 2020-01-03  89 | 2020-01-03   83.5 |
+        2020-01-04  31 | 2020-01-04  133 | 2020-01-04  56 | 2020-01-04  110.0 |
+        2020-01-05  18 | 2020-01-05    8 | 2020-01-05   5 | 2020-01-05   15.5 |
         2020-01-06  99 | 2020-01-06   33 | 2020-01-06   1 | 2020-01-06   66.5 |
 
      The call to :py:meth:`flagGeneric <saqq.SaQC.processGeneric>` added the new variable ``mean``
@@ -602,7 +602,7 @@ variables in a given dataset. We start with dummy data again:
 
      .. code-block::
 
-        varname ; test                    
+        varname ; test
         #-------;------------------------------------------------------
         mean    ; processGeneric(field=["x", "y", "z"], func=(x+y+z)/2)
 
@@ -611,7 +611,7 @@ variables in a given dataset. We start with dummy data again:
 
         >>> tmp = ConfigReader(data).readString(
         ...         """
-        ...         varname ; test                    
+        ...         varname ; test
         ...         #-------;------------------------------------------------------
         ...         mean    ; processGeneric(field=["x", "y", "z"], func=(x+y+z)/2)
         ...         """

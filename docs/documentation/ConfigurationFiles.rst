@@ -70,7 +70,7 @@ of :py:meth:`flagRange <saqc.SaQC.flagRange>`:
    flagRange(field, min=-inf, max=inf, flag=255.)
 
 The signature consists of the prevalent parameter ``field``, the specific parameters ``min``
-and ``max`` as well as the :ref:`global parameter <documentation/GlobalKeywords:dfilter and flag keywords>`
+and ``max`` as well as the :ref:`global parameter <global_flagging>`
 ``flag``. The translation of the given API call to ``flagRange``
 
 .. code-block:: python

@@ -37,7 +37,7 @@ Documentation
       *Setting up and test-running SaQC on your system*
 
    .. grid-item-card:: SaQC Configurator
-      :link: https://webapp.ufz.de/saqc-config-app/
+      :link: https://web.app.ufz.de/saqc-config-app/
 
       * parametrisation tool and sand-box for all the SaQC methods
       * accessible without having any environment
@@ -73,21 +73,12 @@ Documentation
       :link: ../documentation/documentationPanels
       :link-type: doc
 
-      * CSV file-controlled flagging
+      * Configuration file based quality control
       * global keywords
+      * flags and flagging
       * customization
       +++
       *Introductions to core mechanics and principles*
-
-
-   .. grid-item-card:: Developer Resources
-      :link: ../devresources/devResPanels
-      :link-type: doc
-
-      * writing documentation
-      * implementing SaQC methods
-      +++
-      *All the materials needed, to get involved in SaQC development*
 
 
 SaQC is developed and maintained by the

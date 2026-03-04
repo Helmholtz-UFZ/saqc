@@ -17,6 +17,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   - `getHistByKwarg` (retrieve a specific history Series of a fields)
 - `start_date` and `end_date` keyword arguments can be used to determine seasonal masks
 - data types `TimestampStr`, `DateIndexStr`, `PathStr`
+- New documentation page describing Flags and Histories
 ### Changed
 - `SaQC.setFlags`: parameter `override` now defaults to True
 - `SaQC.flagRange`: Make the parameters `min` and `max` optional
@@ -24,6 +25,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `start_date` and `end_date` keywords get passed through if function does not mask field.
 - `SaQC.resample`: passing list of fields ensures unified alignment index in the results
 - `SaQC.align`: passing list of fields ensures unified alignment index in the results
+- Structure of the online documentation
 ### Removed
 - Deprecated function `SaQC.flagMVScores`
 - Deprecated function `SaQC.flagRaise`

@@ -12,11 +12,11 @@
 
    Repository <https://git.ufz.de/rdm-software/saqc>
    Getting Started <gettingstarted/GettingStartedPanels>
-   Guides <cookbooks/CookBooksPanels>
-   Configurator <https://webapp.ufz.de/saqc-config-app/>
    Documentation <documentation/documentationPanels>
-   Functions API <funcs/funcsPanels>
-   Developer Resources <devresources/devResPanels>
+   Function Overview <funcs/funcsPanels>
+   Function List <modules/SaQCFunctions>
+   Cookbooks <cookbooks/CookBooksPanels>
+   Configurator <https://web.app.ufz.de/saqc-config-app/>
 
 
 .. toctree::
@@ -24,9 +24,6 @@
    :maxdepth: 1
 
    Package <modules/SaQC>
-   Test Functions <modules/SaQCFunctions>
-   Constants <modules/SaQCConstants>
-
 
 ..
    Indices and tables

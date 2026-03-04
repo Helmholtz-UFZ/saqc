@@ -14,39 +14,35 @@ Documentation
 
    ConfigurationFiles
    GlobalKeywords
-   Customizations
-   SourceTarget
    FlaggingTranslation
+   Customizations
 
 .. grid:: 2
    :gutter: 2
 
-   .. grid-item-card:: Configuration files (csv)
+   .. grid-item-card:: Configuration files
       :link: ConfigurationFiles
       :link-type: doc
 
-      * general csv file syntax
-      * use regular expressions
-      +++
-      *Writing csv files that determine the flagging process*
+      How to use configuration files to control SaQC.
 
-   .. grid-item-card:: Global Keywords
+   .. grid-item-card:: Global Function Parameters
       :link: GlobalKeywords
       :link-type: doc
 
-      * use `target`, to control result assignment
-      * use `label`, to name flagging results
-      * use `dfilter`, to filter function input
-      * use `flag`, to set function flagging level
-      +++
-      *Keywords shared by all the flagging functions*
+      Function parameters shared by all SaQC functions.
+
+   .. grid-item-card:: Flags, Flagging Schemes & Histories
+      :link: FlaggingTranslation
+      :link-type: doc
+
+      SaQC's flagging mechanism.
+
 
    .. grid-item-card:: Customizations
       :link: Customizations
       :link-type: doc
 
-      * add custom functions to SaQC
-      +++
-      *Keywords shared by all the flagging functions*
+      How to extend SaQC.
 
 
