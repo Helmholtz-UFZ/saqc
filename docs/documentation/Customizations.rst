@@ -136,7 +136,92 @@ and or you need explicit control over masking, demasking, and squeezing of data 
 
 
 
-Custom flagging schemes
------------------------
+.. _custom_flagging_schemes:
 
-Sorry for the inconvenience! Coming soon...
+Custom Flagging Schemes
+~~~~~~~~~~~~~~~~~~~~~~~
+
+SaQC provides several built-in :ref:`flagging schemes <flagging_schemes>`
+and supports the implementation of custom schemes via a well-defined
+extension interface.
+
+Custom flagging schemes must subclass
+:py:class:`saqc.core.translation.TranslationScheme` and implement the
+following abstract interface:
+
+.. code-block:: python
+
+    class TranslationScheme:
+        @property
+        @abstractmethod
+        def DFILTER_DEFAULT(self) -> float:
+            pass
+
+        @abstractmethod
+        def __call__(self, flag: EXTERNAL_FLAG) -> float:
+            pass
+
+        @abstractmethod
+        def toInternal(self, flags: pd.DataFrame | DictOfSeries) -> Flags:
+            """
+            Translate from external flags to internal flags.
+            """
+            pass
+
+        @abstractmethod
+        def toExternal(
+            self,
+            flags: Flags,
+            attrs: dict | None = None
+        ) -> DictOfSeries:
+            """
+            Translate from internal flags to external flags.
+            """
+            pass
+
+``DFILTER_DEFAULT`` defines the default filtering constant of the respective
+flagging scheme (see :ref:`section filtering <filtering>`). The methods ``toInternal`` and
+``toExternal`` implement the translation between external and internal flags.
+The ``__call__`` method translates a single external flag into its internal
+representation.
+In addition to these structural requirements, there is also a semantic
+prerequisite: every flagging scheme must provide a direct translation for
+the two relevant :ref:`internal flags <internal_flags>` ``-numpy.inf`` and
+``255.0`` (the anomaly marker).
+
+For simple flagging schemes that directly map scalar flag values to one
+another, the base class
+:py:class:`saqc.core.translation.MappingScheme` may provide a more convenient
+implementation.
+
+The implementation of :py:class:`saqc.core.translation.SimpleScheme` may serve as
+an illustrative example:
+
+.. code-block:: python
+
+    import numpy as np
+    from saqc.core.translation import MappingScheme
+
+    class SimpleScheme(MappingScheme):
+        """
+        Acts as the default translator and provides a changeable subset
+        of the internal float flags.
+        """
+
+        _FORWARD = {
+            "UNFLAGGED": -np.inf,
+            "BAD": 255.0,
+            "OK": 0,
+        }
+
+        _BACKWARD = {
+            -np.inf: "UNFLAGGED",
+            np.nan: "UNFLAGGED",
+            255.0: "BAD",
+            0: "OK",
+        }
+
+        def __init__(self):
+            super().__init__(forward=self._FORWARD, backward=self._BACKWARD)
+
+

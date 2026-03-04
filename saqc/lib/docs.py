@@ -32,25 +32,37 @@ DOC_TEMPLATES = {
 COMMON = {
     "field": {
         "name": "field",
-        "description": "Variable to process.",
+        "description": "Name of the input variable to process.",
         "typehint": "",
     },
     "target": {
         "name": "target",
-        "description": "Variable name to which the results are written. :py:attr:`target` will be created if it does not exist. Defaults to :py:attr:`field`.",
+        "description": "Name of the variable to which the results are written. If the variable does not exist, it will be created. Defaults to ``field``.",
         "typehint": ":py:class:`SaQCFields` | :py:class:`newSaQCFields` ",
         "optional": True,
     },
     "dfilter": {
         "name": "dfilter",
-        "description": "Defines which observations will be masked based on the already existing flags. Any data point with a flag equal or worse to this threshold will be passed as ``NaN`` to the function. Defaults to the ``DFILTER_ALL`` value of the translation scheme.",
+        "description": "Defines which observations are masked based on their existing flags. Any data point with a flag value greater than or equal to this threshold is passed to the function as ``numpy.nan``. Defaults to the ``DFILTER_DEFAULT`` value of the active flagging scheme.",
         "typehint": ":py:class:`Any`",
         "optional": True,
     },
     "flag": {
         "name": "flag",
-        "description": "The flag value the function uses to mark observations. Defaults to the ``BAD`` value of the translation scheme.",
+        "description": "Flag value used to annotate detected observations. Defaults to the ``BAD`` value of the active flagging scheme.",
         "typehint": ":py:class:`Any`",
+        "optional": True,
+    },
+    "start_date": {
+        "name": "start_date",
+        "description": "Lower temporal bound for function execution. Only observations with timestamps greater than or equal to ``start_date`` are processed. String inputs may be partially specified (e.g., ``'15:00'``, ``'01T12:00'``, ``'01-01'``) to restrict recurring temporal patterns.",
+        "typehint": "pd.Timestamp | datetime.datetime | str",
+        "optional": True,
+    },
+    "end_date": {
+        "name": "end_date",
+        "description": "Upper temporal bound for function execution. Only observations with timestamps less than or equal to ``end_date`` are processed. String inputs may be partially specified to restrict recurring temporal patterns.",
+        "typehint": ":py:class:`pd.Timestamp` | :py:class:`datetime.datetime` | :py:class:`str`",
         "optional": True,
     },
 }
@@ -98,7 +110,7 @@ def docurator(func, defaults: dict[str, ParamDict] | None = None):
         meta.append(p)
 
     # additional parameters
-    for p in ("target", "dfilter", "flag"):
+    for p in ("target", "dfilter", "flag", "start_date", "end_date"):
         meta.append(toParameter(**{**COMMON[p], **defaults.get(p, {})}))
 
     # return sections
