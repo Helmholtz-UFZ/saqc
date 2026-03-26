@@ -18,10 +18,6 @@ bridge the gap between 'usually faulty' and 'expected to be corrected' in
 a accessible, consistent, objective and reproducible way.
 
 
--------------
-Documentation
--------------
-
 .. grid:: 2
    :gutter: 2
 
@@ -79,6 +75,14 @@ Documentation
       * customization
       +++
       *Introductions to core mechanics and principles*
+
+
+   .. grid-item-card:: Community
+     :link: ../community/Community
+     :link-type: doc
+
+     * Publications
+     * Users & Partners
 
 
 SaQC is developed and maintained by the

@@ -26,6 +26,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `SaQC.resample`: passing list of fields ensures unified alignment index in the results
 - `SaQC.align`: passing list of fields ensures unified alignment index in the results
 - Structure of the online documentation
+- removed redundant documentation heading
 ### Removed
 - Deprecated function `SaQC.flagMVScores`
 - Deprecated function `SaQC.flagRaise`

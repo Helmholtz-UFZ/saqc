@@ -2,10 +2,8 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-
 Documentation
 =============
-
 
 .. toctree::
    :caption: Documentation
@@ -44,5 +42,7 @@ Documentation
       :link-type: doc
 
       How to extend SaQC.
+
+
 
 

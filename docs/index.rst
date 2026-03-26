@@ -17,7 +17,7 @@
    Function List <modules/SaQCFunctions>
    Cookbooks <cookbooks/CookBooksPanels>
    Configurator <https://web.app.ufz.de/saqc-config-app/>
-
+   Community <community/Community>
 
 .. toctree::
    :hidden:
