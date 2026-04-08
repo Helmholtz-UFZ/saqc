@@ -29,6 +29,7 @@ from typing_extensions import Annotated, Protocol, runtime_checkable
 
 from saqc.lib.checking import (
     checkDateIndextStr,
+    checkDateStringSlice,
     checkFields,
     checkFreqStr,
     checkNewFields,
@@ -380,6 +381,15 @@ class FreqStr(RootModel):
     """
 
     root: Annotated[str, AfterValidator(checkFreqStr)]
+
+
+class DateStringSlice(RootModel):
+    """
+    Slice defined by string interpretable as date or timestamp
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    root: Annotated[slice, AfterValidator(checkDateStringSlice)]
 
 
 class SaQC(RootModel):

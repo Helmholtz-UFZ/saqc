@@ -16,7 +16,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   - `getMeta` (retrieve a fields meta list)
   - `getHistByKwarg` (retrieve a specific history Series of a fields)
 - `start_date` and `end_date` keyword arguments can be used to determine seasonal masks
-- data types `TimestampStr`, `DateIndexStr`, `PathStr`
+- data types `TimestampStr`, `DateIndexStr`, `PathStr`, `DateStringSlice`
 - New documentation page describing Flags and Histories
 ### Changed
 - `SaQC.setFlags`: parameter `override` now defaults to True

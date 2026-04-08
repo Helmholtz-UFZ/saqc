@@ -60,6 +60,31 @@ def checkFreqStr(freq: str) -> pd.offsets.BaseOffset:
     return freq
 
 
+def checkDateStringSlice(s: slice):
+
+    err = 0
+    try:
+        checkDateIndextStr(s.start)
+        if s.stop is not None:
+            checkDateIndextStr(s.stop)
+    except KeyError:
+        err += 1
+    if err == 1:
+        try:
+            checkTimestampStr(s.start)
+            if s.stop is not None:
+                checkTimestampStr(s.stop)
+        except KeyError:
+            err += 1
+
+    if err == 2:
+        raise KeyError(
+            f"DateStringSlice has to be defines with string key interpretable as Timestamps or DatetimIndex keys."
+        )
+
+    return s
+
+
 def checkSaQC(o):
     from saqc.core import SaQC
 
