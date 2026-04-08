@@ -24,6 +24,7 @@ from saqc.lib.selectionGUI import MplScroller, SelectionOverlay
 from saqc.lib.tools import periodicMask
 from saqc.lib.types import (
     DateIndexStr,
+    DateStringSlice,
     NewSaQCFields,
     OffsetStr,
     PathStr,
@@ -379,7 +380,7 @@ class ToolsMixin(ValidatePublicMembers):
         max_gap: OffsetStr | None = None,
         mode: Literal["subplots", "oneplot", "biplot"] = "oneplot",
         history: Literal["valid", "complete"] | list[str] | None = "valid",
-        xscope: slice | OffsetStr | DateIndexStr | None = None,
+        xscope: DateStringSlice | OffsetStr | DateIndexStr | None = None,
         yscope: list[tuple[float, float]] | tuple[float, float] | dict | None = None,
         store_kwargs: dict | None = None,
         ax: mpl.axes.Axes | None = None,

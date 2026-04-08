@@ -546,7 +546,7 @@ class ScoresMixin(ValidatePublicMembers):
         p: Int > 0 = 1,
         density: Literal["auto"] | (Float > 0) = "auto",
         fill_na: bool = True,
-        statistical_extent=1,
+        statistical_extent: Float[0, 1] = 1,
         **kwargs,
     ) -> SaQC:
         """
@@ -602,6 +602,11 @@ class ScoresMixin(ValidatePublicMembers):
             Impute NaN values.
 
             If True, NaNs in the data are filled with a linear interpolation.
+
+        statistical_extent :
+            Probability of Membership
+
+            Controls the fuzzy-nes of a outlier clusters.
 
         Notes
         -----
