@@ -5,12 +5,15 @@
 Basic Anomalies
 ---------------
 
+Detection of fundamental anomalies in time series data, including gaps, sudden jumps,
+constant segments, and isolated values.
+
 .. currentmodule:: saqc
 
 .. autosummary::
    :nosignatures:
 
-   ~SaQC.flagMissing
+   ~SaQC.flagNAN
    ~SaQC.flagIsolated
    ~SaQC.flagJumps
    ~SaQC.flagConstants

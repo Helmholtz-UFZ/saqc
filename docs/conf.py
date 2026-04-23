@@ -10,7 +10,6 @@
 
 # -- Path setup --------------------------------------------------------------
 
-import ast
 import logging
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -47,14 +46,16 @@ logging.getLogger("sphinx").addFilter(filterDuplicateObject)
 # -- Project information -----------------------------------------------------
 
 project = "SaQC"
-copyright = "2020, Bert Palm, David Schäfer, Peter Lünenschloß, Florian Gransee"
-author = "Bert Palm, David Schäfer, Peter Lünenschloß, Florian Gransee"
+copyright = "2020, David Schäfer, Peter Lünenschloß, Bert Palm, Timo Houben, Florian Gransee, Jan Bumberger"
+author = "David Schäfer, Peter Lünenschloß, Bert Palm"
 
 # The full version, including alpha/beta/rc tags
 release = f"{version}"
 
 
 # -- General configuration ---------------------------------------------------
+
+numfig = True
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom

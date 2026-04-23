@@ -2,8 +2,11 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-Tools
------
+Basic Utilities
+---------------
+
+Basic utility methods for handling time series data, including plotting, copying,
+and deleting variables.
 
 .. currentmodule:: saqc
 
