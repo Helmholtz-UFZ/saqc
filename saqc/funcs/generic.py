@@ -153,15 +153,19 @@ class GenericMixin(ValidatePublicMembers):
 
         Examples
         --------
-        Compute the sum of the variables 'rainfall' and 'snowfall' and save the result to
-        a (new) variable 'precipitation'
 
-        >>> from saqc import SaQC
-        >>> qc = SaQC(pd.DataFrame({'rainfall':[1], 'snowfall':[2]}, index=pd.DatetimeIndex([0])))
-        >>> qc = qc.processGeneric(field=["rainfall", "snowfall"], target="precipitation", func=lambda x, y: x + y)
-        >>> qc.data.to_pandas()
-                    rainfall  snowfall  precipitation
-        1970-01-01         1         2              3
+        Compute the sum of the variables 'rainfall' and 'snowfall' and save the result to
+        a (new) variable 'precipitation':
+
+
+        .. testsetup:: exampleProcessGeneric
+
+           qc = saqc.SaQC(pd.DataFrame({'rainfall':[1], 'snowfall':[2]}, index=pd.DatetimeIndex([0])))
+
+        .. testcode:: exampleProcessGeneric
+
+           qc = qc.processGeneric(field=["rainfall", "snowfall"], target="precipitation", func=lambda x, y: x + y)
+
         """
 
         fields = toSequence(field)

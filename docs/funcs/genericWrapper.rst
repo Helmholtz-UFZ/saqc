@@ -5,6 +5,9 @@
 Generic Functions
 -----------------
 
+Methods for applying generic and custom functions to time series data, including
+logical and arithmetical aggregation, user-defined functions, and operations such
+as rolling, resampling, and transformation.
 
 .. currentmodule:: saqc
 
@@ -13,6 +16,4 @@ Generic Functions
 
    ~SaQC.processGeneric
    ~SaQC.flagGeneric
-   ~SaQC.andGroup
-   ~SaQC.orGroup
 

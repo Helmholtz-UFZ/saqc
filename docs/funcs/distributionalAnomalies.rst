@@ -5,6 +5,8 @@
 Change Points and Noise
 -----------------------
 
+Detection of distributional anomalies in time series data, including change points
+and continuously noisy data segments.
 
 .. currentmodule:: saqc
 

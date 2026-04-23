@@ -5,7 +5,8 @@
 Multivariate Analysis
 ---------------------
 
-Multivariate outlier detection.
+Methods for detecting anomalies in multivariate data, including k-nearest neighbor (kNN)
+scoring and Local Outlier Factor (LOF).
 
 .. currentmodule:: saqc
 

@@ -2,9 +2,6 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-# `Users & Partners`_
-# `Publications`_
-# `Citing SaQC`_
 
 Users & Partners
 ----------------
@@ -51,6 +48,7 @@ Users & Partners
    .. grid-item-card::
       :img-background: ../resources/images/partners/METEariannLogo.png
       :link: https://www.met.ie/
+
 
 Publications
 ------------
@@ -110,7 +108,6 @@ Citing SaQC
 -----------
 
 If SaQC is advancing your research, please cite the software (ideally the exact version you used) and the reference paper:
-Reference paper
 
 Reference Paper
 ^^^^^^^^^^^^^^^

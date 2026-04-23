@@ -93,6 +93,20 @@ a :py:class:`SaQC` object using the keyword argument ``scheme``
 (``SaQC(..., scheme="simple")``) or by setting the attribute
 :py:attr:`SaQC.scheme` directly.
 
+:numref:`quality_labels` illustrates the translation between two exemplary
+flagging schemes and the internal representation.
+
+.. _quality_labels:
+
+.. figure:: ../resources/images/quality_labels.png
+   :alt: Example image
+   :width: 400px
+   :align: center
+
+   Translation between the Flagging Schemes ``Scheme 1``, ``Scheme 2`` and the internal
+   flag representation ``SaQC``.
+
+
 Currently, three different flagging schemes are provided:
 
 1. :py:class:`FloatScheme`

@@ -2,13 +2,14 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-Gap filling
------------
-Methods for filling gaps in time series data, including interpolation and rolling window approaches.
+Pipeline Calibration
+--------------------
+
+Methods for deriving SaQC configurations from existing flags.
 
 .. currentmodule:: saqc
 
 .. autosummary::
-   :nosignatures:
 
-   ~SaQC.interpolateByRolling
+   ~SaQC.supervise
+   ~SaQC.calibratePipeline

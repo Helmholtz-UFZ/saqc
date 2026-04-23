@@ -5,6 +5,10 @@
 Data Products
 -------------
 
+Methods for deriving additional data products from time series data, such as smoothed
+signals using frequency filters or polynomial fits, residual extraction, and calculation
+of kNN and LOF scores.
+
 .. currentmodule:: saqc
 
 .. autosummary::
