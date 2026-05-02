@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import pickle
 import tkinter as tk
+import warnings
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -349,6 +350,14 @@ class ToolsMixin(ValidatePublicMembers):
         >> end = "06:00:00"
 
         """
+
+        warnings.warn(
+            """
+            The method selectTime is deprecated and will be removed in SaQC 2.10.
+            Please use the global method parameters start_date ande end_date instead.
+            """,
+            DeprecationWarning,
+        )
 
         datcol_idx = self._data[field].index
 

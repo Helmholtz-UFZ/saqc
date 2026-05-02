@@ -472,7 +472,7 @@ def register(
 
             if regex is True:
                 warnings.warn(
-                    "The global function parameter 'regex' will be removed in SaQC 2.10",
+                    "The global method parameter 'regex' will be removed in SaQC 2.10",
                     DeprecationWarning,
                 )
             if "target" in kwargs and kwargs["target"] is None:

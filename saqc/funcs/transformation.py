@@ -7,6 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Callable
 
 import numpy as np
@@ -58,6 +59,14 @@ class TransformationMixin(ValidatePublicMembers):
             * ``int`` : Apply transformation on successive data chunks of the given length. Must be grater than 0.
             * Offset String : Apply transformation on successive data chunks of the given temporal extension.
         """
+        warnings.warn(
+            """
+            The method transform is deprecated and will be removed in SaQC 2.10.
+            Please use processGeneric instead.
+            """,
+            DeprecationWarning,
+        )
+
         if isinstance(func, str):
             func = ENV_TRAFOS[func]
 

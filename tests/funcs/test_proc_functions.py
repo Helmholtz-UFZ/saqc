@@ -20,6 +20,7 @@ from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
 from tests.fixtures import char_dict, course_3, course_5  # noqa, todo: fix fixtures
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.parametrize(
     ("window", "center", "expected"),
     [
@@ -66,6 +67,7 @@ def test_rollingInterpolateMissing(course_5):
     assert qc.data[field][characteristics["missing"]].isna().all()
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_transform(course_5):
     data, characteristics = course_5(periods=10, nan_slice=[5, 6])
     field = data.columns[0]
