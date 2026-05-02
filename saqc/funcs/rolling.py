@@ -7,6 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import warnings
 from typing import Callable, Literal, Union
 
 import numpy as np
@@ -106,6 +107,15 @@ class RollingMixin(ValidatePublicMembers):
 
            Example of rolling over multiple variables.
         """
+
+        warnings.warn(
+            """
+            The method rolling is deprecated and will be removed in SaQC 2.10.
+            Please use processGeneric instead.
+            """,
+            DeprecationWarning,
+        )
+
         # HINT: checking in  _roll
         if target and (len(target) > 1) and (len(field) != len(target)):
             raise ValueError(

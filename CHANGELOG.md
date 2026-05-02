@@ -28,12 +28,14 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Structure of the online documentation
 - removed redundant documentation heading
 ### Removed
-- Deprecated function `SaQC.flagMVScores`
-- Deprecated function `SaQC.flagRaise`
-- Deprecated function `SaQC.flagMAD`
-- Deprecated function `SaQC.flagByGrubbs`
-- Deprecated function `SaQC.flagManual`
-- Paremeter `freq` in `SaQC.flagDriftFromNorm`
+- Method `saqc.fitMomentFM`
+- Deprecated method `SaQC.flagMVScores`
+- Deprecated method `SaQC.flagRaise`
+- Deprecated method `SaQC.flagMAD`
+- Deprecated method `SaQC.flagByGrubbs`
+- Deprecated method `SaQC.flagManual`
+- Deprecated parameter `freq` in `SaQC.flagDriftFromNorm`
+- Deprecated parameters `norm_func` and `model_func` to method `SaQC.flagZScore`
 - Option to pass arguments of type dict to parameter `group` in `SaQC.andGroup` and `SaQC.orGroup`
 - Option to pass the argument `"match"` to parameter  `method` in `SaQC.concatFlags`
 - Support for arguments with prefix `inverse` to parameter `method` in `SaQC.concatFlags`
@@ -41,7 +43,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `SaQC.resample`: fixed missing import when called with `squeeze=True`
 - `SaQC.flagRange`: fixed missing multifield support
 ### Deprecated
-- Global mnethod parameter `regex`
+- Global method parameter `regex`
+- Method `SaQC.flagPatternByDTW`
+- Method `SaQC.calculateDistanceByDTW`
+- Method `SaQC.rolling`
+- Method `SaQC.selectTime`
+- Method `SaQC.transform`
 
 ## [2.7.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.7.0) - 2025-09-09
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.6.0...v2.7.0)

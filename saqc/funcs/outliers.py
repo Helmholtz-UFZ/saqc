@@ -899,30 +899,6 @@ class OutliersMixin(ValidatePublicMembers):
         3. Flag :math:`x`, if :math:`Z >` ``thresh`` and :math:`|E(X) - x|`> ``min_residuals``.
         """
 
-        if "norm_func" in kwargs or "model_func" in kwargs:
-            warnings.warn(
-                "Parameters norm_func and model_func are deprecated, use parameter method instead.\n"
-                'To model with mean and scale with standard deviation, use method="standard".\n'
-                'To model with median and scale with median absolute deviation (MAD) use method="modified".\n'
-                "Other/Custom model and scaling functions are not supported any more"
-            )
-            if (
-                "mean" in kwargs.get("model_func", "").__name__
-                or "std" in kwargs.get("norm_func", "").__name__
-            ):
-                method = "standard"
-            elif (
-                "median" in kwargs.get("model_func", lambda x: x).__name__
-                or "median" in kwargs.get("norm_func", lambda x: x).__name__
-            ):
-                method = "modified"
-            else:
-                raise ValueError(
-                    "Support for scoring with functions not similar to "
-                    "either Zscore or modified Zscore is not supported "
-                    "anymore"
-                )
-
         min_residuals = min_residuals or 0
         min_periods = min_periods or 0
 

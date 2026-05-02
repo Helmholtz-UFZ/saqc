@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import functools
 import multiprocessing as mp
+import warnings
 
 import fastdtw
 import numpy as np
@@ -583,6 +584,11 @@ def calculateDistanceByDTW(
     --------
     flagPatternByDTW : flag data by DTW
     """
+    warnings.warn(
+        "The function calculateDistanceByDTW is deprecated and will be removed in SaQC 2.10",
+        DeprecationWarning,
+    )
+
     if reference.hasnans or reference.empty:
         raise ValueError("reference must not have nan's and must not be empty.")
 
@@ -796,6 +802,12 @@ class PatternMixin(ValidatePublicMembers):
 
         [1] https://cran.r-project.org/web/packages/dtw/dtw.pdf
         """
+
+        warnings.warn(
+            "The method flagPatternByDTW is deprecated and will be removed in SaQC 2.10",
+            DeprecationWarning,
+        )
+
         ref = self._data[reference]
         dat = self._data[field]
 
