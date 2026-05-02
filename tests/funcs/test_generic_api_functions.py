@@ -20,7 +20,7 @@ def data():
     return initData()
 
 
-def test_emptyData():
+def test_flagGeneric_emptyData():
     # test that things do not break with empty data sets
     saqc = SaQC(data=pd.DataFrame({"x": [], "y": []}))
 
@@ -44,7 +44,7 @@ def test_emptyData():
         (["tmp1", "tmp2"], lambda x, y: pd.Series(True, index=x.index.union(y.index))),
     ],
 )
-def test_writeTargetFlagGeneric(data, targets, func):
+def test_flagGeneric_writeTarget(data, targets, func):
     saqc = SaQC(data=data)
     saqc = saqc.flagGeneric(field=data.columns, target=targets, func=func, flag=BAD)
     for target in targets:
@@ -61,7 +61,7 @@ def test_writeTargetFlagGeneric(data, targets, func):
         ),
     ],
 )
-def test_overwriteFieldFlagGeneric(data, fields, func):
+def test_flagGeneric_overwriteField(data, fields, func):
     flag = 12
 
     saqc = SaQC(
@@ -118,7 +118,7 @@ def test_overwriteFieldFlagGeneric(data, fields, func):
         ),
     ],
 )
-def test_writeTargetProcGeneric(data, targets, func, expected_data):
+def test_processGeneric_writeTarget(data, targets, func, expected_data):
     fields = data.columns.tolist()
     dfilter = 128
 
@@ -156,7 +156,7 @@ def test_writeTargetProcGeneric(data, targets, func, expected_data):
         ),
     ],
 )
-def test_overwriteFieldProcGeneric(data, fields, func, expected_data):
+def test_processGeenric_overwriteField(data, fields, func, expected_data):
     dfilter = 128
 
     saqc = SaQC(
@@ -177,7 +177,7 @@ def test_overwriteFieldProcGeneric(data, fields, func, expected_data):
         }
 
 
-def test_label():
+def test_flagGeneric_label():
     dat = pd.DataFrame(
         {"data1": [1, 1, 5, 2, 1], "data2": [1, 1, 2, 3, 4], "data3": [1, 1, 2, 3, 4]},
         index=pd.date_range("2000", "2005", periods=5),
@@ -220,3 +220,23 @@ def test_processGenericClip(kwargs, got, expected):
     )
     qc = SaQC(got).processGeneric(field, func=lambda x: clip(x, **kwargs))
     assert (qc._data[field] == expected[field]).all()
+
+
+def test_processGeneric_changeIndex(data):
+
+    with pytest.raises(ValueError):
+        # needs to fail without a target
+        SaQC(data).processGeneric(field="var1", func=lambda x: x.resample("D").mean())
+
+    qc = SaQC(data).processGeneric(
+        field="var1", target="out1", func=lambda x: x.resample("D").mean()
+    )
+    assert qc.data["out1"].equals(data["var1"].resample("D").mean())
+
+    qc = SaQC(data).processGeneric(
+        field=["var1", "var2"],
+        target=["out1", "out2"],
+        func=lambda x, y: (x.resample("D").mean(), y.resample("D").mean()),
+    )
+    assert qc.data["out1"].equals(data["var1"].resample("D").mean())
+    assert qc.data["out2"].equals(data["var2"].resample("D").mean())
