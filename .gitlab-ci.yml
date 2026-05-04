@@ -30,7 +30,7 @@ stages:
   - deploy
 
 default:
-  image: python:3.11
+  image: python:3.13
   before_script:
     - pip install --upgrade pip
     - pip install -r requirements.txt
@@ -93,19 +93,6 @@ coverage:
         path: coverage.xml
 
 
-python310:
-  stage: test
-  image: python:3.10
-  script:
-    - export DISPLAY=:99
-    - Xvfb :99 &
-    - pytest tests -Werror --junitxml=report.xml --ignore=tests/extras
-    - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
-  artifacts:
-    when: always
-    reports:
-      junit: report.xml
-
 python311:
   stage: test
   image: python:3.11
@@ -145,6 +132,20 @@ python313:
     reports:
       junit: report.xml
 
+# python314:
+#   stage: test
+#   image: python:3.14
+#   script:
+#     - export DISPLAY=:99
+#     - Xvfb :99 &
+#     - pytest tests -Werror --junitxml=report.xml --ignore=tests/extras
+#     - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
+#   artifacts:
+#     when: always
+#     reports:
+#       junit: report.xml
+
+
 doctest:
   stage: test
   variables:
@@ -161,17 +162,6 @@ doctest:
 # ===========================================================
 # check if we are able to build a wheel
 # and if the import works
-wheel310:
-  stage: build
-  image: python:3.10
-  variables:
-    PYPI_PKG_NAME: "saqc-dev"
-  script:
-    - pip install wheel
-    - pip wheel .
-    - pip install .
-    - python -c 'import saqc; print(f"{saqc.__version__=}")'
-
 wheel311:
   stage: build
   image: python:3.11
@@ -204,6 +194,17 @@ wheel313:
     - pip wheel .
     - pip install .
     - python -c 'import saqc; print(f"{saqc.__version__=}")'
+
+# wheel314:
+#   stage: build
+#   image: python:3.14
+#   variables:
+#     PYPI_PKG_NAME: "saqc-dev"
+#   script:
+#     - pip install wheel
+#     - pip wheel .
+#     - pip install .
+#     - python -c 'import saqc; print(f"{saqc.__version__=}")'
 
 # ===========================================================
 # Extra Pipeline (run with a successful run of all other jobs on develop)

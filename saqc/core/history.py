@@ -66,7 +66,7 @@ class History:
 
     @property
     def hist(self):
-        return self._hist.astype(float, copy=True)
+        return self._hist.astype(float)
 
     @hist.setter
     def hist(self, value: pd.DataFrame) -> None:
@@ -77,7 +77,7 @@ class History:
                 "To use a new `hist` with new `meta` use "
                 "'History.createFromData(new_hist, new_meta)'"
             )
-        self._hist = value.astype("category", copy=True)
+        self._hist = value.astype("category")
 
     @property
     def meta(self) -> list[dict[str, Any]]:
@@ -353,7 +353,7 @@ class History:
         """
         # Note: code must handle empty frames
         out = self.copy() if copy else self
-        hist = out._hist.astype(float).reindex(index=index, copy=False)
+        hist = out._hist.astype(float).reindex(index=index)
         hist.iloc[:, -1:] = hist.iloc[:, -1:].fillna(fill_value_last)
         out._hist = hist.astype("category")
         return out
@@ -409,10 +409,10 @@ class History:
 
         # convert data to floats as functions may fail with categorical dtype
         if func_handle_df:
-            hist = func(self._hist.astype(float, copy=True), **func_kws)
+            hist = func(self._hist.astype(float), **func_kws)
         else:
             for pos in self.columns:
-                hist[pos] = func(self._hist[pos].astype(float, copy=True), **func_kws)
+                hist[pos] = func(self._hist[pos].astype(float), **func_kws)
 
         try:
             self._validate(hist, self._meta)
@@ -587,7 +587,7 @@ class History:
             meta = _copy.deepcopy(meta)
 
         history = cls(index=None)  # noqa
-        history._hist = hist.astype("category", copy=False)
+        history._hist = hist.astype("category")
         history._meta = meta
         return history
 

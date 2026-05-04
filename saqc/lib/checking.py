@@ -46,17 +46,7 @@ def checkOffsetStr(freq: str) -> pd.offsets.BaseOffset:
 
 
 def checkFreqStr(freq: str) -> pd.offsets.BaseOffset:
-    try:
-        f = pd.tseries.frequencies.to_offset(freq)
-    except ValueError:
-        raise ValueError(f"Not an offset reference: '{freq}'")
-    try:
-        pd.Timedelta(f)
-    except ValueError:
-        raise ValueError(
-            f"Not a frequency string: {freq}. \n "
-            f"-> {freq} refers to an Offset (={f}). But that cant be interpreted as Frequency (most likely because its not a fixed temporal extension)."
-        )
+    pd.Timedelta(freq)
     return freq
 
 

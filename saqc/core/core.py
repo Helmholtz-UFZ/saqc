@@ -33,7 +33,6 @@ from saqc.funcs import FunctionsMixin
 
 # warnings
 pd.set_option("mode.chained_assignment", "warn")
-pd.set_option("mode.copy_on_write", True)
 np.seterr(invalid="ignore")
 
 

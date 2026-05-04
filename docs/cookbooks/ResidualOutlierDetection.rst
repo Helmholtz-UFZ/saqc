@@ -143,54 +143,83 @@ Modelling
 
 First, we want to model our data in order to obtain a stationary, residuish variable with zero mean.
 
+
 Rolling Mean
 ^^^^^^^^^^^^
 
-Easiest thing to do, would be, to apply some rolling mean
-model via the method :py:meth:`saqc.SaQC.rolling`.
+The easiest approach is to apply a rolling mean model using the flexible method
+:py:meth:`~saqc.SaQC.processGeneric`.
 
 .. doctest:: exampleOD
 
-   >>> import numpy as np
-   >>> qc = qc.rolling(field='incidents', target='incidents_mean', func=np.mean, window='13D')
+   >>> qc = qc.processGeneric(
+   ...     field='incidents',
+   ...     target='incidents_mean',
+   ...     func=lambda x: x.rolling("13D").mean()
+   ... )
 
 .. plot::
    :context:
    :include-source: False
 
-   import numpy as np
-   qc = qc.rolling(field='incidents', target='incidents_mean', func=np.mean, window='13D')
+   qc = qc.processGeneric(
+       field='incidents',
+       target='incidents_mean',
+       func=lambda x: x.rolling("13D").mean()
+   )
 
-The ``field`` parameter is passed the variable name, we want to calculate the rolling mean of.
-The ``target`` parameter holds the name, we want to store the results of the calculation to.
-The ``window`` parameter controlls the size of the rolling window. It can be fed any so called `date alias <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_ string. We chose the rolling window to have a 13 days span.
+The ``field`` parameter specifies the variable name for which the rolling mean
+should be calculated.
+
+The ``target`` parameter defines the name under which the results will be stored.
+
+The ``func`` parameter accepts an arbitrary Python function. This function is
+expected to receive the same number of ``pd.Series`` objects as there are entries
+in the ``field`` parameter, and to return the same number of ``pd.Series`` objects
+as specified in ``target``.
+
+Since all arguments are passed as ``pd.Series``, we can directly use the
+``rolling`` method with a window of 13 days.
 
 Rolling Median
 ^^^^^^^^^^^^^^
 
-You can pass arbitrary function objects to the ``func`` parameter, to be applied to calculate every single windows "score".
-For example, you could go for the *median* instead of the *mean*. The numpy library provides a `median <https://numpy.org/doc/stable/reference/generated/numpy.median.html>`_ function
-under the name ``np.median``. We just calculate another model curve for the ``"incidents"`` data with the ``np.median`` function from the ``numpy`` library.
+The ``func`` parameter allows you to define custom computations that are
+applied to the input data.
+
+For example, instead of computing a rolling *mean*, you can compute a rolling
+*median*. In the following example, we generate a new model curve for the
+``"incidents"`` data using the ``median`` method.
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.rolling(field='incidents', target='incidents_median', func=np.median, window='13D')
+   >>> qc = qc.processGeneric(
+   ...     field='incidents',
+   ...     target='incidents_median',
+   ...     func=lambda x: x.rolling("13D").median()
+   ... )
 
 .. plot::
    :context:
    :include-source: False
 
-   qc = qc.rolling(field='incidents', target='incidents_median', func=np.median, window='13D')
+   qc = qc.processGeneric(
+       field='incidents',
+       target='incidents_median',
+       func=lambda x: x.rolling("13D").median()
+   )
 
-We chose another :py:attr:`target` value for the rolling *median* calculation, in order to not override our results from
-the previous rolling *mean* calculation.
-The :py:attr:`target` parameter can be passed to any call of a function from the
-saqc functions pool and will determine the result of the function to be written to the
-data, under the fieldname specified by it. If there already exists a field with the name passed to ``target``\ ,
-the data stored to this field will be overridden.
+We use a different :py:attr:`target` value for the rolling *median* calculation
+to avoid overwriting the results from the previous rolling *mean* calculation.
 
-We will evaluate and visualize the different model curves :ref:`later <cookbooks/ResidualOutlierDetection:Visualisation>`.
-Beforehand, we will generate some more model data.
+The :py:attr:`target` parameter can be provided in any function call from the
+SaQC function pool. It determines the field name under which the result is
+stored. If a field with the same name already exists, its contents will be
+overwritten.
+
+We will evaluate and visualize the different model curves
+:ref:`later <cookbooks/ResidualOutlierDetection:Visualisation>`.
+Before that, we will generate additional model data.
 
 Polynomial Fit
 ^^^^^^^^^^^^^^
@@ -215,15 +244,17 @@ The parameter, :py:attr:`order` refers to the size of the rolling window, the po
 Custom Models
 ^^^^^^^^^^^^^
 
-If you want to apply a completely arbitrary function to your data, without pre-chunking it by a rolling window,
-you can make use of the more general :py:meth:`~saqc.SaQC.processGeneric` function.
+With :py:meth:`~saqc.SaQC.processGeneric`, you can apply completely arbitrary
+functions to your data.
 
-Lets apply a smoothing filter from the `scipy.signal <https://docs.scipy.org/doc/scipy/reference/signal.html>`_
-module. We wrap the filter generator up into a function first:
+As an example, we apply a smoothing filter from the
+`scipy.signal <https://docs.scipy.org/doc/scipy/reference/signal.html>`_
+module. First, we wrap the filter into a function:
 
 .. testcode:: exampleOD
 
    from scipy.signal import filtfilt, butter
+
    def butterFilter(x, filter_order, nyq, cutoff, filter_type="lowpass"):
        b, a = butter(N=filter_order, Wn=cutoff / nyq, btype=filter_type)
        return pd.Series(filtfilt(b, a, x), index=x.index)
@@ -233,24 +264,31 @@ module. We wrap the filter generator up into a function first:
    :include-source: False
 
    from scipy.signal import filtfilt, butter
+
    def butterFilter(x, filter_order, nyq, cutoff, filter_type="lowpass"):
        b, a = butter(N=filter_order, Wn=cutoff / nyq, btype=filter_type)
        return pd.Series(filtfilt(b, a, x), index=x.index)
 
-
-This function object, we can pass on to the :py:meth:`~saqc.SaQC.processGeneric` methods ``func`` argument.
+This function can then be passed to the ``func`` parameter of
+:py:meth:`~saqc.SaQC.processGeneric`.
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.processGeneric(field='incidents', target='incidents_lowPass',
-   ... func=lambda x: butterFilter(x, cutoff=0.1, nyq=0.5, filter_order=2))
+   >>> qc = qc.processGeneric(
+   ...     field='incidents',
+   ...     target='incidents_lowPass',
+   ...     func=lambda x: butterFilter(x, cutoff=0.1, nyq=0.5, filter_order=2)
+   ... )
 
 .. plot::
    :context:
    :include-source: False
 
-   qc = qc.processGeneric(field='incidents', target='incidents_lowPass', func=lambda x: butterFilter(x, cutoff=0.1, nyq=0.5, filter_order=2))
-
+   qc = qc.processGeneric(
+       field='incidents',
+       target='incidents_lowPass',
+       func=lambda x: butterFilter(x, cutoff=0.1, nyq=0.5, filter_order=2)
+   )
 
 Visualisation
 -------------
@@ -310,26 +348,29 @@ for the point lying in the center of every window, we would define our function 
 
 .. doctest:: exampleOD
 
-   >>> z_score = lambda D: abs((D[14] - np.mean(D)) / np.std(D))
+   >>> import numpy as np
+   >>> z_score = lambda D: abs((D.iloc[14] - D.mean()) / D.std())
+
 
 .. plot::
    :context: close-figs
    :include-source: False
 
-   z_score = lambda D: abs((D[14] - np.mean(D)) / np.std(D))
+   import numpy as np
+   z_score = lambda D: abs((D.iloc[14] - D.mean()) / D.std())
 
 And subsequently, use the :py:meth:`~saqc.SaQC.rolling` method to make a rolling window application with the scoring
 function:
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.rolling(field='incidents_residuals', target='incidents_scores', func=z_score, window='27D', min_periods=27)
+   >>> qc = qc.processGeneric(field='incidents_residuals', target='incidents_scores', func=lambda x: x.rolling("27D", min_periods=27).apply(z_score))
 
 .. plot::
    :context: close-figs
    :include-source: False
 
-   qc = qc.rolling(field='incidents_residuals', target='incidents_scores', func=z_score, window='27D', min_periods=27)
+   qc = qc.processGeneric(field='incidents_residuals', target='incidents_scores', func=lambda x: x.rolling("27D", min_periods=27).apply(z_score))
 
 Optimization by Decomposition
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

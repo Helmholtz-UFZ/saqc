@@ -68,7 +68,7 @@ We can check out the fields, the newly generated :py:class:`~saqc.SaQC` object c
 .. doctest:: exampleMV
 
    >>> qc.data.columns
-   Index(['sac254_raw', 'level_raw', 'water_temp_raw', 'maint'], dtype='object')
+   Index(['sac254_raw', 'level_raw', 'water_temp_raw', 'maint'], dtype='str')
 
 The variables represent meassurements of *water level*, the *specific absorption coefficient* at 254 nm Wavelength,
 the *water temperature* and there is also a variable, *maint*, that refers to time periods, where the *sac254* sensor

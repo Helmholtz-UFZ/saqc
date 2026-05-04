@@ -82,8 +82,9 @@ def check_invariants(hist):
         ]
     )
     assert all([isinstance(e, dict) for e in hist.meta])
-    assert hist.columns is hist.hist.columns
-    assert hist.index is hist.hist.index
+    assert hist.columns.equals(hist.hist.columns)
+
+    assert hist.index.equals(hist.hist.index)
     assert len(hist) == len(hist.columns) == len(hist.meta)
 
     # advanced

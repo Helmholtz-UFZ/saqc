@@ -50,7 +50,7 @@ def test_exceedConsecutiveNanLimit(arr, maxc, expected):
     assert result is expected
 
 
-def dtSeries(data, freq="1d"):
+def dtSeries(data, freq="1D"):
     index = pd.date_range(start="2020", periods=len(data), freq=freq)
     return pd.Series(data=data, index=index, dtype=float)
 
@@ -76,7 +76,7 @@ def test_identity(data):
 def test_count(data, expected):
     # count is labeled as a dummy function, this means
     # we need to ensure it exists with a resampler object.
-    resampler = data.resample("2d")
+    resampler = data.resample("2D")
     assert hasattr(resampler, "count")
 
     from saqc.lib.ts_operators import count

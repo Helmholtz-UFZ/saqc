@@ -128,7 +128,7 @@ class Flags:
        >>> flags.history['v0'] # doctest:+NORMALIZE_WHITESPACE
              0     1     2
        0  255.0  25.0  25.0
-       1  255.0   nan   nan
+       1  255.0   NaN   NaN
        2   -inf  25.0  25.0
 
 
@@ -186,7 +186,7 @@ class Flags:
        >>> flags.history['v0']
              0     1     2    3     4
        0  255.0  25.0  25.0  0.0  99.0
-       1  255.0   nan   nan  nan  99.0
+       1  255.0   NaN   NaN  NaN  99.0
        2   -inf  25.0  25.0  0.0  99.0
     """
 
