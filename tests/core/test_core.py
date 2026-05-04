@@ -220,7 +220,7 @@ def test_validation(data):
     """Test if validation detects different columns in data and flags."""
     df = pd.DataFrame(
         data=np.arange(8).reshape(4, 2),
-        index=pd.date_range("2020", None, 4, "1d"),
+        index=pd.date_range("2020", None, 4, "1D"),
         columns=list("ab"),
     )
     qc = SaQC(df)

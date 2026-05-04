@@ -13,10 +13,6 @@ import pandas as pd
 import pytest
 
 import saqc
-from saqc import BAD, UNFLAGGED, DictOfSeries, SaQC
-from saqc.core.flags import initFlagsLike
-from saqc.lib.tools import getHist
-from tests.fixtures import char_dict, course_1, course_2, course_3, course_4
 
 SEED = 42
 DATLEN = 1000

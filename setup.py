@@ -40,7 +40,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://git.ufz.de/rdm-software/saqc",
     packages=find_packages(exclude=("tests", "docs")),
-    python_requires=">=3.10",
+    python_requires=">=3.11",
     install_requires=[
         "Click",
         "docstring_parser",
@@ -50,6 +50,7 @@ setup(
         "numpy",
         "outlier-utils",
         "pyarrow",
+        "pymoo",
         "pandas",
         "pydantic",
         "scikit-learn",

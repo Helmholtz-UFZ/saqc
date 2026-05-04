@@ -115,18 +115,18 @@ def test_interpolateGrid(course_5, course_3):
 
 @pytest.mark.slow
 def test_offsetCorrecture():
-    data = pd.Series(0, index=pd.date_range("2000", freq="1d", periods=100), name="dat")
+    data = pd.Series(0, index=pd.date_range("2000", freq="1D", periods=100), name="dat")
     data.iloc[30:40] = -100
     data.iloc[70:80] = 100
     flags = initFlagsLike(data)
-    qc = SaQC(data, flags).correctOffset("dat", 40, 20, "3d", 1)
+    qc = SaQC(data, flags).correctOffset("dat", 40, 20, "3D", 1)
     assert (qc.data["dat"] == 0).all()
 
 
 # GL-333
 def test_resampleSingleEmptySeries():
     qc = saqc.SaQC(pd.DataFrame(1, columns=["a"], index=pd.DatetimeIndex([])))
-    qc.resample("a", freq="1d")
+    qc.resample("a", freq="1D")
 
 
 @pytest.mark.parametrize(
