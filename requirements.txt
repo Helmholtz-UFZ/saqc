@@ -15,7 +15,7 @@ pyarrow==24.0.0
 pandas==3.0.2
 polars==1.40.1
 scikit-learn==1.8.0
-# we cannor upgrade due to scipy.ricker
+# pinned because scipy.signal.ricker was removed after SciPy 1.14
 scipy==1.14.1
 typing_extensions==4.15.0
 pydantic==2.13.3

@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
 # SPDX-License-Identifier: GPL-3.0-or-later
-import os
 
 import versioneer
 from setuptools import find_packages, setup
@@ -11,14 +10,7 @@ from setuptools import find_packages, setup
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-
-name = os.environ.get("PYPI_PKG_NAME", "saqc")
-if not name:
-    raise ValueError("Environment variable PYPI_PKG_NAME must not be an empty string.")
-
-
 v = versioneer.get_versions()
-print(f"saqc version: {v}")
 
 if v["error"]:
     raise RuntimeError(v["error"])
@@ -28,9 +20,8 @@ if v["dirty"]:
         f"The repository you build is dirty. Please commit changes first {v}."
     )
 
-
 setup(
-    name=name,
+    name="saqc",
     version=versioneer.get_version(),  # keep this line as it is
     cmdclass=versioneer.get_cmdclass(),  # keep this line as it is
     author="David Schaefer, Bert Palm, Peter Luenenschloss",
@@ -42,20 +33,21 @@ setup(
     packages=find_packages(exclude=("tests", "docs")),
     python_requires=">=3.11",
     install_requires=[
-        "Click",
-        "docstring_parser",
-        "fancy-collections",
-        "fastdtw",
-        "matplotlib",
-        "numpy",
-        "outlier-utils",
-        "pyarrow",
-        "pymoo",
-        "pandas",
-        "pydantic",
-        "scikit-learn",
-        "scipy",
-        "typing_extensions",
+        "click>=8.3.3",
+        "docstring_parser>=0.18",
+        "fancy-collections==0.3.0",
+        "fastdtw==0.3.4",
+        "matplotlib>=3.10.9",
+        "numpy<=2.2.6",
+        "outlier-utils==0.0.5",
+        "pyarrow>=24.0.0",
+        "pymoo>=0.6.1.6",
+        "pandas>=3.0.2",
+        "pydantic>=2.13.3",
+        "scikit-learn>=1.8.0",
+        "scipy<=1.14.1",
+        "typing_extensions>=4.15.0",
+        "eval-type-backport>=0.3.1",
     ],
     license_files=("LICENSE.md", "LICENSES/GPL-3.0-or-later.txt"),
     entry_points={
