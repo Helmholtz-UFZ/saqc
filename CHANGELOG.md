@@ -5,9 +5,17 @@ SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 # Changelog
-
 ## Unreleased
-[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.7.0...main)
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.8.0...main)
+### Added
+### Changed
+### Removed
+### Fixed
+### Deprecated
+
+
+## [2.8.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.8.0) - 2026-05-03
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.7.0...v2.8.0)
 ### Added
 - Support for tuples and dictionaries in config files
 - `start_date` and `end_date` keyword arguments can be used to determine seasonal masks
