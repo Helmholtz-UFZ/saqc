@@ -7,6 +7,7 @@ from __future__ import annotations
 import functools
 import multiprocessing as mp
 import warnings
+from typing import TYPE_CHECKING
 
 import fastdtw
 import numpy as np
@@ -22,11 +23,13 @@ from saqc.lib.types import (
     Float,
     Int,
     OffsetStr,
-    SaQC,
     SaQCColumns,
     SaQCFields,
     ValidatePublicMembers,
 )
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 FACTOR_BASE = [5, 10, 20, 50, 100, 1000, 10000, 100000]
 CHUNK_LEN = 2 * (10**5)

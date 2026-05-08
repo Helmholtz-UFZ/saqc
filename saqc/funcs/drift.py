@@ -11,7 +11,7 @@ from __future__ import annotations
 import functools
 import inspect
 import warnings
-from typing import Callable, Literal, Tuple
+from typing import TYPE_CHECKING, Callable, Literal, Tuple
 
 import numpy as np
 import pandas as pd
@@ -31,11 +31,13 @@ from saqc.lib.types import (
     FreqStr,
     Int,
     OffsetStr,
-    SaQC,
     SaQCColumns,
     SaQCFields,
     ValidatePublicMembers,
 )
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 DRIFT_MODELS = {"linear": linearDriftModel, "exponential": expDriftModel}
 

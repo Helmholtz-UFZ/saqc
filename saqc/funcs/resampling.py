@@ -10,7 +10,7 @@ from __future__ import annotations
 import typing
 import uuid
 import warnings
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 import pandas as pd
@@ -29,11 +29,13 @@ from saqc.lib.types import (
     Int,
     OffsetLike,
     OffsetStr,
-    SaQC,
     SaQCColumns,
     SaQCFields,
     ValidatePublicMembers,
 )
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 AGGFUNCS = list(typing.get_args(AGG_FUNC_LITERALS))
 

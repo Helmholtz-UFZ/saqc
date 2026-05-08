@@ -7,7 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 import pandas as pd
@@ -19,10 +19,12 @@ from saqc.lib.types import (
     AGG_FUNC_LITERALS,
     Int,
     OffsetStr,
-    SaQC,
     SaQCFields,
     ValidatePublicMembers,
 )
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 
 class ResidualsMixin(ValidatePublicMembers):

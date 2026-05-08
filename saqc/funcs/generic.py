@@ -18,12 +18,14 @@ from saqc.lib.tools import isAllBoolean, isflagged, isunflagged, toSequence
 from saqc.lib.types import (
     GenericFunction,
     NewSaQCFields,
-    SaQC,
     SaQCColumns,
     SaQCFields,
     ValidatePublicMembers,
 )
 from saqc.parsing.environ import ENVIRONMENT
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 
 def _flagSelect(field: str, flags: Flags, label: str | None = None) -> pd.Series:

@@ -14,7 +14,10 @@ import pandas as pd
 
 from saqc import BAD, UNFLAGGED
 from saqc.core import flagging, register
-from saqc.lib.types import Int, OffsetStr, SaQC, SaQCFields, ValidatePublicMembers
+from saqc.lib.types import Int, OffsetStr, SaQCFields, ValidatePublicMembers
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 
 class ChangepointsMixin(ValidatePublicMembers):

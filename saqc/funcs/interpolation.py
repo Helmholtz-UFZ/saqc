@@ -23,11 +23,13 @@ from saqc.lib.types import (
     FreqStr,
     Int,
     OffsetStr,
-    SaQC,
     SaQCFields,
     ValidatePublicMembers,
 )
 from saqc.parsing.environ import ENV_OPERATORS
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 DATA_REINDEXER = {"fshift": "last", "bshift": "first", "nshift": "first"}
 

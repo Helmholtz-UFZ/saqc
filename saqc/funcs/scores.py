@@ -7,7 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Callable, Tuple
+from typing import TYPE_CHECKING, Callable, Tuple
 
 import numpy as np
 import pandas as pd
@@ -28,12 +28,14 @@ from saqc.lib.types import (
     Int,
     NewSaQCFields,
     OffsetStr,
-    SaQC,
     SaQCColumns,
     SaQCFields,
     ValidatePublicMembers,
 )
 from saqc.parsing.environ import ENV_OPERATORS
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 
 def _density(

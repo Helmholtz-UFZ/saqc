@@ -10,6 +10,7 @@ from __future__ import annotations
 import pickle
 import tkinter as tk
 import warnings
+from typing import TYPE_CHECKING
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -29,12 +30,14 @@ from saqc.lib.types import (
     NewSaQCFields,
     OffsetStr,
     PathStr,
-    SaQC,
     SaQCColumns,
     SaQCFields,
     TimestampStr,
     ValidatePublicMembers,
 )
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
 _TEST_MODE = False

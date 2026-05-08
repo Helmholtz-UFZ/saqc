@@ -20,12 +20,10 @@ from saqc.core import flagging, processing, register
 from saqc.lib.problems import make_problem
 from saqc.lib.tools import getHist, getHistByKwarg, getMeta
 
-# control the SEED for initial population sampling
-OPT_SEED = None
-
-
 if TYPE_CHECKING:
     from saqc import SaQC
+# control the SEED for initial population sampling
+OPT_SEED = None
 
 
 class OptiSaqcMixin:

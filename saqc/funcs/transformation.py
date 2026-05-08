@@ -21,14 +21,18 @@ if TYPE_CHECKING:
 else:
     from saqc.lib.types import SaQC
 
+from typing import TYPE_CHECKING
+
 from saqc.lib.types import (
     AGG_FUNC_LITERALS,
     FreqStr,
     Int,
-    SaQC,
     SaQCFields,
     ValidatePublicMembers,
 )
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 
 class TransformationMixin(ValidatePublicMembers):
