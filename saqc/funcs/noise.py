@@ -22,11 +22,13 @@ from saqc.lib.types import (
     Float,
     Int,
     OffsetStr,
-    SaQC,
     SaQCFields,
     ValidatePublicMembers,
 )
 from saqc.parsing.environ import ENV_OPERATORS
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 
 class NoiseMixin(ValidatePublicMembers):

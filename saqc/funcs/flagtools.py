@@ -30,11 +30,13 @@ from saqc.lib.types import (
     Int,
     NewSaQCFields,
     OffsetStr,
-    SaQC,
     SaQCColumns,
     SaQCFields,
     ValidatePublicMembers,
 )
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 
 class FlagtoolsMixin(ValidatePublicMembers):

@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import Callable, Literal, Union
+from typing import TYPE_CHECKING, Callable, Literal, Union
 
 import numpy as np
 import pandas as pd
@@ -20,11 +20,13 @@ from saqc.lib.types import (
     Int,
     NewSaQCFields,
     OffsetStr,
-    SaQC,
     SaQCColumns,
     SaQCFields,
     ValidatePublicMembers,
 )
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 
 class RollingMixin(ValidatePublicMembers):

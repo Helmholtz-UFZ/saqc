@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 import warnings
-from typing import Callable, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
 
 import numpy as np
 import numpy.polynomial.polynomial as poly
@@ -31,10 +31,12 @@ from saqc.lib.types import (
     FreqStr,
     Int,
     OffsetStr,
-    SaQC,
     SaQCFields,
     ValidatePublicMembers,
 )
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 
 def _estimateCutoffProbability(probabilities: np.ndarray, thresh: float):

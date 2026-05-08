@@ -24,7 +24,6 @@ from saqc.lib.types import (
     FreqStr,
     Int,
     OffsetStr,
-    SaQC,
     SaQCFields,
     ValidatePublicMembers,
 )
@@ -32,6 +31,11 @@ from saqc.lib.types import (
 DEFAULT_MOMENT = dict(
     pretrained_model_name_or_path="AutonLab/MOMENT-1-large", revision="main"
 )
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from saqc import SaQC
 
 
 class CurvefitMixin(ValidatePublicMembers):
