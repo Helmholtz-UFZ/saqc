@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 import fastdtw
 import numpy as np
 import pandas as pd
+import pywt
 from scipy import signal
 
 from saqc import BAD
@@ -37,6 +38,17 @@ SCALE_CHUNK_SIZE = 200
 MIN_TASKS_PER_CORE = 100
 OPT_FACTOR = 50
 BOUND_SCALES = 10
+
+
+def signal_ricker(points, a):
+    A = 2 / (np.sqrt(3 * a) * (np.pi**0.25))
+    wsq = a**2
+    vec = np.arange(0, points) - (points - 1.0) / 2
+    xsq = vec**2
+    mod = 1 - xsq / wsq
+    gauss = np.exp(-xsq / (2 * wsq))
+    total = A * mod * gauss
+    return total
 
 
 def _searchChunks(
@@ -76,7 +88,6 @@ def _searchChunks(
             to_flag[s:e] |= _offSetSearch(
                 base_series=datcol.iloc[s:e],
                 scale_vals=sv,
-                wavelet=signal.ricker,
                 min_jump=min_jump,
                 thresh=0.1,
                 bound_scales=BOUND_SCALES,
@@ -180,7 +191,7 @@ def _mpFunc(s: int, scale: np.ndarray, opt_kwargs: dict) -> (pd.Series, int, pd.
     """
     similarity_scores, similarity_scores_inv, reduction_factor = _waveSimilarityScoring(
         scale,
-        signal.ricker(s * 10, s),
+        signal_ricker(s * 10, s),
         opt_kwargs=opt_kwargs,
     )
     similarity_scores = _similarityScoreReduction(
@@ -480,7 +491,6 @@ def _similarityScoreReduction(
 def _offSetSearch(
     base_series: pd.Series,
     scale_vals: np.ndarray,
-    wavelet: np.ndarray[float],
     min_jump: float,
     mi_ma: tuple[float],
     thresh: float = 0.1,
@@ -493,7 +503,9 @@ def _offSetSearch(
     returning pd.Series that evaluates to ``True`` at position to flag.
     """
     idx_map = np.arange(len(base_series))
-    scales = signal.cwt(base_series.values, wavelet, scale_vals)
+    scales = pywt.cwt(
+        base_series.values, scale_vals, "mexh", precision=16, method="fft"
+    )[0]
 
     qc_arr = np.zeros([len(base_series), len(scale_vals)]).astype(bool)
     qc_arr_inv = qc_arr.copy()
