@@ -9,6 +9,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.8.0...main)
 ### Added
 ### Changed
+`SaQC.flagPlateau`: switched wavelet provider from `scipy.signal.cwt` to `pywt.cwt`
 ### Removed
 ### Fixed
 ### Deprecated
