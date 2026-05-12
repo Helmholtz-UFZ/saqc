@@ -188,7 +188,6 @@ def _maskData(
     # we use numpy here because it is faster
     for c in columns:
         col_mask = isflagged(flags[c].to_numpy(), thresh)
-
         if (isPeriodicStamp(start_date) is True) and (
             isPeriodicStamp(end_date) is True
         ):

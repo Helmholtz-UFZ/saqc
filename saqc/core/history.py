@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import copy as _copy
+import inspect
 from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
@@ -320,8 +321,14 @@ class History:
         dtype: float64
         """
         hist = self._hist.iloc[:, slice(start, end)].astype(float)
+        hist.dropna(axis=1, how="all", inplace=True)
         if hist.empty:
             result = pd.Series(data=np.nan, index=self._hist.index, dtype=float)
+        elif hist.shape[1] == 1:
+            if hist.shape[0] == 1:
+                result = hist.iloc[:, 0]
+            else:
+                result = hist.squeeze()  # thats the pandas squeeze, not the history one
         else:
             result = AGGRGEGATIONS[AGGREGATION](hist)
         if not raw:

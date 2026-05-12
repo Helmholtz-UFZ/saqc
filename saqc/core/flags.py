@@ -44,7 +44,6 @@ class _HistAccess:
         if not isinstance(value, History):
             raise TypeError("Not a History")
 
-        self._obj._validateHistForFlags(value)
         self._obj._data[key] = value
 
 
@@ -221,7 +220,6 @@ class Flags:
             # a passed History is not altered. So if the passed History
             # does not fit for Flags, we fail hard.
             if isinstance(item, History):
-                Flags._validateHistForFlags(item, colname=k)
                 if copy:
                     item = item.copy()
                 result[k] = item
@@ -236,21 +234,6 @@ class Flags:
             )
 
         return result
-
-    @staticmethod
-    def _validateHistForFlags(history: History, colname=None):
-        if history.empty:
-            return history
-
-        errm = "History "
-        if colname:
-            errm += f"of column {colname} "
-
-        # this ensures that the mask does not shadow UNFLAGGED with a NaN.
-        if history.squeeze().hasnans:
-            raise ValueError(errm + "is not valid (result of max() contains NaNs)")
-
-        return history
 
     @property
     def _constructor(self) -> Type["Flags"]:
