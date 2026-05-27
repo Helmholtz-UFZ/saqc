@@ -486,3 +486,28 @@ def test_mvAlignment():
     assert getSharedIndex(result, how="inner").equals(
         getSharedIndex(result, how="outer")
     )
+
+
+def test_linearWithTolerance():
+    index = pd.to_datetime(
+        [
+            "2025-01-01 00:00:00",
+            "2025-01-01 00:14:30",
+            "2025-01-01 00:30:32",
+            "2025-01-01 00:46:32",
+            "2025-01-01 01:02:32",
+            "2025-01-01 01:18:32",
+            "2025-01-01 01:34:32",
+            "2025-01-01 01:50:32",
+        ]
+    )
+    data = pd.DataFrame({"x": range(len(index))}, index=index)
+
+    qc = SaQC(data, scheme="simple")
+    qc0 = qc.align("x", freq="15min", method="time", tolerance=None)
+    qc1 = qc.align("x", freq="15min", method="time", tolerance="0.5min")
+    qc2 = qc.align("x", freq="15min", method="time", tolerance="2min")
+
+    (qc0.data.to_pandas().iloc[1:3].squeeze().isna() == np.array([True, True])).all()
+    (qc1.data.to_pandas().iloc[1:3].squeeze().isna() == np.array([True, False])).all()
+    (qc2.data.to_pandas().iloc[1:3].squeeze().isna() == np.array([False, False])).all()
