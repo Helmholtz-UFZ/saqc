@@ -8,6 +8,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## Unreleased
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.8.0...main)
 ### Added
+`SaQC.align`: `tolerance` keyword added: allows for extending validation scope when align-interpolating
 ### Changed
 `SaQC.flagPlateau`: switched wavelet provider from `scipy.signal.cwt` to `pywt.cwt`
 ### Removed

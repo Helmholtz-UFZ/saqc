@@ -111,6 +111,15 @@ def _reindexerFromPillarPoints(
             datcol = datcol.reindex(index.join(datcol.index, how="outer"))
             datcol = datcol.interpolate("time")
             datcol = datcol[index]
+            if tolerance is not None:  # get tolerance mask
+                tol_mask = (
+                    idx_source.reindex(index, method="bfill", tolerance=tolerance)[1]
+                    >= 0
+                ) & (
+                    idx_source.reindex(index, method="ffill", tolerance=tolerance)[1]
+                    >= 0
+                )
+                dummy |= tol_mask
         elif pd.api.types.is_scalar(data_aggregation):
             datcol = pd.Series(data_aggregation, index=index)
         else:
@@ -450,7 +459,7 @@ class ResamplingMixin(ValidatePublicMembers):
            * `'bagg'`/`'fagg'`: "backwards/forwards aggregation". Any new index period gets assigned an
              aggregation of the values at periods in the original index, that lie between itself and its successor/predecessor.
            * `'nagg'`: "nearest aggregation": Any new index period gets assigned an aggregation of the values at periods
-             in the original index between its direcet predecessor and successor, it is the nearest neighbor to.
+             in the original index between its direct predecessor and successor, it is the nearest neighbor to.
            * Rolling reindexer. Rolling reindexers are equal to aggregations, when projecting between
              regular and irregular sampling grids forth and back. But due to there simple rolling window construction, they are
              easier to comprehend, predict and parametrize. On the downside, they are much more expensive computationally and

@@ -22,6 +22,7 @@ from saqc.lib.types import (
     AGG_FUNC_LITERALS,
     FreqStr,
     Int,
+    OffsetLike,
     OffsetStr,
     SaQCFields,
     ValidatePublicMembers,
@@ -170,23 +171,10 @@ class InterpolationMixin(ValidatePublicMembers):
             "fshift",
             "linear",
             "time",
-            "index",
-            "values",
             "pad",
-            "spline",
-            "polynomial" "nearest",
-            "zero",
-            "slinear",
-            "quadratic",
-            "cubic",
-            "barycentric",
-            "krogh",
-            "pchip",
-            "akima",
-            "cubicspline",
-            "from_derivatives",
         ] = "time",
         order: Int > 0 = 2,
+        tolerance: OffsetStr | OffsetLike | None = None,
         overwrite: bool = False,
         **kwargs,
     ) -> SaQC:
@@ -217,22 +205,18 @@ class InterpolationMixin(ValidatePublicMembers):
             * ``'fshift'``: Shift grid points to the last preceding time stamp.
             * ``'linear'``, ``'time'``, ``'index'``, ``'values'``: Use numerical values
               of the index. (Note: internally mapped to ``'mshift'``.)
-            * ``'pad'``: Fill NaNs using existing values (same as ``'fshift'``).
-            * ``'spline'``, ``'polynomial'``: Passed to
-              ``scipy.interpolate.interp1d``. Requires specifying ``order``.
-            * ``'nearest'``, ``'zero'``, ``'slinear'``, ``'quadratic'``,
-              ``'cubic'``, ``'barycentric'``: Passed to
-              ``scipy.interpolate.interp1d``.
-            * ``'krogh'``, ``'pchip'``, ``'akima'``, ``'cubicspline'``:
-              Wrappers around SciPy interpolation methods.
-            * ``'from_derivatives'``: Uses
-              ``scipy.interpolate.BPoly.from_derivatives``.
 
         order :
             Method order.
 
             Some methods need an order or degree specified additionally.
             (e.g., polynomial, spline). Ignored otherwise.
+
+        tolerance :
+            Extends window width of interval validation by `tolerance`.
+
+            * only of effect when interpolating (`'time'`, `'linear'`).
+            * extends the length of the window for the preceeding/succeeding pillar value check.
 
         overwrite :
             Overwrite existing flags.
@@ -248,6 +232,9 @@ class InterpolationMixin(ValidatePublicMembers):
 
         idx = getSharedIndex(self.data[field], how="outer")
         idx = makeUniformIndex(idx, freq)
+
+        if tolerance is not None:
+            freq = pd.Timedelta(tolerance) + pd.Timedelta(freq)
 
         for f in field:
             self = self.reindex(
