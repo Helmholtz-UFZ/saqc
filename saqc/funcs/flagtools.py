@@ -9,14 +9,13 @@ from __future__ import annotations
 
 import operator
 import warnings
-from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
+from typing import TYPE_CHECKING, Callable, Literal, Sequence
 
 import numpy as np
 import pandas as pd
-from typing_extensions import Literal
 
 from saqc import BAD, FILTER_ALL, UNFLAGGED
-from saqc.core import DictOfSeries, flagging, register
+from saqc.core import flagging, register
 from saqc.core.history import History
 from saqc.lib.tools import (
     initializeTargets,

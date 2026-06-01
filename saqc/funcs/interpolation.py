@@ -7,11 +7,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Literal, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from typing_extensions import Literal
 
 from saqc import UNFLAGGED
 from saqc.core import register

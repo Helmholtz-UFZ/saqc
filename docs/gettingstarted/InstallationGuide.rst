@@ -9,12 +9,12 @@ Installation Guide
 
 SaQC is written in Python, so the easiest way to set up your system to use SaQC
 for your needs is using the Python Package Index (PyPI). It might be a good idea
-to install SaQC into its own virtual environment. 
+to install SaQC into its own virtual environment.
 
 
 System Requirements
 -------------------
-SaQC is tested to run with Python version from 3.7 to 3.9 on 64-bit operating systems (Linux and Windows).
+SaQC is tested to run with Python version from 3.11 to 3.14 on 64-bit operating systems (Linux, Mac and Windows).
 
 
 Set up a virtual environment

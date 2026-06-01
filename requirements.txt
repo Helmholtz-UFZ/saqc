@@ -2,22 +2,17 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-Click==8.3.3
+click==8.4.1
 docstring_parser==0.18
 fancy-collections==0.3.0
 fastdtw==0.3.4
 matplotlib==3.10.9
-# pinned because of scipy==1.14.1
-numpy==2.2.6
-outlier-utils==0.0.5
-pymoo==0.6.1.6
+numpy==2.4.6
 pyarrow==24.0.0
-pandas==3.0.2
-polars==1.40.1
+pymoo==0.6.1.6
+pandas==3.0.3
+polars==1.41.2
 scikit-learn==1.8.0
-# pinned because scipy.signal.ricker was removed after SciPy 1.14
-scipy==1.14.1
-typing_extensions==4.15.0
-pydantic==2.13.3
-eval-type-backport==0.3.1
-pywavelets
+scipy==1.17.1
+pydantic==2.13.4
+pywavelets==1.9.0

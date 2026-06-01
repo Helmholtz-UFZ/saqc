@@ -9,12 +9,12 @@
 from __future__ import annotations
 
 import itertools
+from typing import Literal
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from typing_extensions import Literal
 
 from saqc.core import DictOfSeries, Flags
 from saqc.lib.tools import toSequence

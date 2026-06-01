@@ -7,14 +7,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Tuple
+from typing import TYPE_CHECKING, Callable, Literal, Tuple
 
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 from scipy.special import erf, erfinv
 from sklearn.neighbors import LocalOutlierFactor
-from typing_extensions import Literal
 
 from saqc.core import register
 from saqc.lib.docs import DOC_TEMPLATES
