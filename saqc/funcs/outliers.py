@@ -9,23 +9,19 @@
 from __future__ import annotations
 
 import uuid
-import warnings
-from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Literal, Sequence, Tuple
 
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
-from outliers import smirnov_grubbs  # noqa, on pypi as outlier-utils
-from scipy.stats import median_abs_deviation
 from sklearn.cluster import k_means
 from sklearn.metrics import silhouette_samples
-from typing_extensions import Literal
 
 from saqc import BAD, UNFLAGGED
 from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.rolling import windowRoller
-from saqc.lib.tools import getFreqDelta, isflagged, toSequence
+from saqc.lib.tools import isflagged, toSequence
 from saqc.lib.types import (
     Float,
     FreqStr,

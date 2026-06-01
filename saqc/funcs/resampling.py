@@ -9,12 +9,10 @@ from __future__ import annotations
 
 import typing
 import uuid
-import warnings
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Literal
 
 import numpy as np
 import pandas as pd
-from typing_extensions import Literal
 
 import saqc.constants
 from saqc.constants import UNFLAGGED

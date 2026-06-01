@@ -10,13 +10,12 @@ from __future__ import annotations
 import pickle
 import tkinter as tk
 import warnings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from typing_extensions import Literal
 
 from saqc import BAD, FILTER_NONE, UNFLAGGED
 from saqc.core import processing, register

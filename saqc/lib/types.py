@@ -25,7 +25,6 @@ from pydantic import (
     field_validator,
 )
 from pydantic.functional_validators import AfterValidator
-from typing_extensions import Annotated, Protocol, runtime_checkable
 
 from saqc.lib.checking import (
     checkDateIndextStr,
