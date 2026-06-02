@@ -35,6 +35,7 @@ from saqc.core.translation import (
     AnnotatedFloatScheme,
 )
 from saqc.parsing.reader import fromConfig
+
 from . import _version
 
 __version__ = _version.get_versions()["version"]

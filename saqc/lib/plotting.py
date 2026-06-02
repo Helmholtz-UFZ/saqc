@@ -16,41 +16,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+import saqc
 from saqc.core import DictOfSeries, Flags
 from saqc.lib.tools import toSequence
-
-# default color cycle for flags markers (seaborn color palette)
-MARKER_COL_CYCLE = [
-    (0.00784313725490196, 0.24313725490196078, 1.0),
-    (1.0, 0.48627450980392156, 0.0),
-    (0.10196078431372549, 0.788235294117647, 0.2196078431372549),
-    (0.9098039215686274, 0.0, 0.043137254901960784),
-    (0.5450980392156862, 0.16862745098039217, 0.8862745098039215),
-    (0.6235294117647059, 0.2823529411764706, 0.0),
-    (0.9450980392156862, 0.2980392156862745, 0.7568627450980392),
-    (0.6392156862745098, 0.6392156862745098, 0.6392156862745098),
-    (1.0, 0.7686274509803922, 0.0),
-    (0.0, 0.8431372549019608, 1.0),
-]
-
-# default color cycle for plot colors (many-in-one-plots)
-PLOT_COL_CYCLE = [(0, 0, 0)] + MARKER_COL_CYCLE  # itertools.cycle(MARKER_COL_CYCLE)
-
-# default data plot configuration (color kwarg only effective for many-to-one-plots)
-PLOT_KWARGS = {"alpha": 0.8, "linewidth": 1, "color": PLOT_COL_CYCLE}
-
-# default figure configuration
-FIG_KWARGS = {"figsize": (16, 9)}
-
-# default flags markers configuration
-SCATTER_KWARGS = {
-    "marker": ["s", "D", "^", "o", "v"],
-    "color": MARKER_COL_CYCLE,
-    "alpha": 0.7,
-    "zorder": 10,
-    "edgecolors": "black",
-    "s": 70,
-}
 
 
 def makeFig(
@@ -179,7 +147,7 @@ def makeFig(
         ax_kwargs.pop("fontsize", None) or plt.rcParams["font.size"]
     )
 
-    plt.rcParams["figure.figsize"] = FIG_KWARGS["figsize"]
+    plt.rcParams["figure.figsize"] = saqc.options.plotting.fig_kwargs["figsize"]
 
     # set default axis sharing behavior (share x axis over rows if not explicitly opted sharex=False):
     sharex = False
@@ -199,7 +167,10 @@ def makeFig(
         d[f0].index = phase_index_d
         flags_vals[f0].index = phase_index
         flags_hist[f0].index = phase_index
-        plot_kwargs = {**PLOT_KWARGS, **{"marker": "o", "linewidth": 0}}
+        plot_kwargs = {
+            **saqc.options.plotting.plot_kwargs,
+            **{"marker": "o", "linewidth": 0},
+        }
         ax_kwargs = {"xlabel": mode, "ylabel": d[f0].name, **ax_kwargs}
 
     # insert nans between values mutually spaced > max_gap
@@ -423,8 +394,8 @@ def _plotVarWithFlags(
     # zip references for the variable loop:
     loop_ref = zip(axes, dat_dict.keys(), dat_dict.values())
     # include default settings if not modified
-    scatter_kwargs = {**SCATTER_KWARGS, **scatter_kwargs}
-    plot_kwargs = {**PLOT_KWARGS, **plot_kwargs}
+    scatter_kwargs = {**saqc.options.plotting.scatter_kwargs, **scatter_kwargs}
+    plot_kwargs = {**saqc.options.plotting.plot_kwargs, **plot_kwargs}
     if mode == "subplots":
         plot_kwargs["color"] = "black"
     # pop plot cycles options (will throw error when passed on) - plot always black data lines for one-dat-to-one-ax plots:

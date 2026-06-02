@@ -19,11 +19,17 @@ from pymoo.optimize import minimize
 from saqc.core import flagging, processing, register
 from saqc.lib.problems import make_problem
 from saqc.lib.tools import getHist, getHistByKwarg, getMeta
+from saqc.options import deprecateOptions, optimization
 
 if TYPE_CHECKING:
     from saqc import SaQC
-# control the SEED for initial population sampling
-OPT_SEED = None
+
+
+deprecateOptions(
+    module_name=__name__,
+    options_name="optimization",
+    deprecations={"OPT_SEED": "seed"},
+)
 
 
 class OptiSaqcMixin:
@@ -333,7 +339,7 @@ class OptiSaqcMixin:
 
                 opt_results[i] = minimize(
                     problem=problem_instances[i],
-                    seed=OPT_SEED,
+                    seed=optimization.seed,
                     save_history=log_pop,
                     verbose=verbose,
                     **optimizer_paras,
