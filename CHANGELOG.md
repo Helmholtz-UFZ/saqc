@@ -8,12 +8,18 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## Unreleased
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.8.0...main)
 ### Added
-`SaQC.align`: `tolerance` keyword added: allows for extending validation scope when align-interpolating
+- `options` module
+- `SaQC.align`: `tolerance` keyword added: allows for extending validation scope when align-interpolating
 ### Changed
 `SaQC.flagPlateau`: switched wavelet provider from `scipy.signal.cwt` to `pywt.cwt`
 ### Removed
 ### Fixed
 ### Deprecated
+- Option `saqc.core.history.AGGRGEATION` in favor of `saqc.options.history.aggregation`
+- Option `saqc.core.history.AGGRGEATIONS` in favor of `saqc.options.history.aggregations`
+- Option `saqc.funcs.tools._MPL_DEFAULT_BACKEND` in favor of `saqc.options.plotting.backend`
+- Option `saqc.funcs.tools._TEST_MODE` in favor of `saqc.options.plotting.test_mode`
+- Option `saqc.funcs.optisaqc.OPT_SEED` in favor of `saqc.options.optimization.seed`
 
 
 ## [2.8.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.8.0) - 2026-05-03

@@ -623,3 +623,19 @@ def test_date_seasons(data):
     )
     assert (qc._flags["var1"][season_select] == BAD).all()
     assert (qc._flags["var1"][~season_select] == UNFLAGGED).all()
+
+
+def test_options():
+    # NOTE: test can be removed after the options are all consolidated
+    import saqc
+
+    with pytest.warns(DeprecationWarning):
+        saqc.core.history.AGGREGATIONS
+
+    with pytest.warns(DeprecationWarning):
+        saqc.core.history.AGGREGATION = "test"
+        assert saqc.options.history.aggregation == "test"
+
+    # reset to not disturb the other tests...
+    saqc.options.history.aggregation = "last"
+    assert saqc.options.history.aggregation == "last"

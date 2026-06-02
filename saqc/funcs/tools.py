@@ -38,8 +38,11 @@ from saqc.lib.types import (
 if TYPE_CHECKING:
     from saqc import SaQC
 
-_MPL_DEFAULT_BACKEND = mpl.get_backend()
-_TEST_MODE = False
+from saqc.options import deprecateOptions, plotting
+
+deprecateOptions(
+    __name__, "plotting", {"_MPL_DEFAULT_BACKEND": "backend", "_TEST_MODE": "test_mode"}
+)
 
 
 class ToolsMixin(ValidatePublicMembers):
@@ -104,9 +107,9 @@ class ToolsMixin(ValidatePublicMembers):
         if not scrollbar:
             plt.rcParams["toolbar"] = "toolmanager"
 
-        if not _TEST_MODE:
+        if not plotting.test_mode:
             plt.close("all")
-            mpl.use(_MPL_DEFAULT_BACKEND)
+            mpl.use(plotting.backend)
         else:
             mpl.use("Agg")
         ax_kwargs = kwargs.pop("ax_kwargs", {})
@@ -144,17 +147,17 @@ class ToolsMixin(ValidatePublicMembers):
             selection_marker_kwargs=selection_marker_kwargs,
             parent=scroller,
         )
-        if _TEST_MODE & scrollbar:
+        if plotting.test_mode & scrollbar:
             root.after(2000, root.destroy)
             # return self
 
         if scrollbar:
             root.attributes("-fullscreen", True)
             root.mainloop()
-            if not _TEST_MODE:
+            if not plotting.test_mode:
                 root.destroy()
         else:  # show figure if only overlay is used
-            plt.show(block=not _TEST_MODE)
+            plt.show(block=not plotting.test_mode)
             plt.rcParams["toolbar"] = "toolbar2"
 
         # disconnect mouse events when GUI is closed
@@ -553,7 +556,7 @@ class ToolsMixin(ValidatePublicMembers):
             ax_kwargs.update({"ylim": yscope})
 
         if not path:
-            mpl.use(_MPL_DEFAULT_BACKEND)
+            mpl.use(plotting.backend)
         else:
             plt.close("all")  # supress matplotlib deprecation warning
             mpl.use("Agg")

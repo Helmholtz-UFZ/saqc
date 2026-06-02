@@ -15,7 +15,7 @@ import pytest
 import saqc
 
 SEED = 42
-saqc.funcs.optisaqc.OPT_SEED = SEED
+saqc.options.optimization.seed = SEED
 
 DATLEN = 1000
 DATA = pd.Series(

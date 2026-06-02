@@ -9,7 +9,8 @@ import pandas as pd
 import pytest
 from pandas.api.types import is_categorical_dtype, is_float_dtype
 
-from saqc.core.history import AGGREGATION, History, createHistoryFromData
+import saqc
+from saqc.core.history import History, createHistoryFromData
 from tests.common import dummyHistory
 
 # see #GH143 combined backtrack
@@ -253,13 +254,12 @@ def test_append_force(__hist, s, max_val):
     ],
 )
 def test_aggregations(col, expected, hist=History(index=pd.Index(range(6)))):
-    import saqc.core.history
 
     hist.append(col)
     check_invariants(hist)
     for aggregation in ["last", "min", "max"]:
-        saqc.core.history.AGGREGATION = aggregation
+        saqc.options.history.aggregation = aggregation
         assert (hist.squeeze() == expected[aggregation]).all()
 
     # reset to not disturb the other tests...
-    saqc.core.history.AGGREGATION = "last"
+    saqc.options.history.aggregation = "last"

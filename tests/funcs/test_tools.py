@@ -47,7 +47,8 @@ def test_makeFig(tmp_path):
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning")
 def test_flagByClick():
-    saqc.funcs.tools._TEST_MODE = True
+    saqc.options.plotting.test_mode = True
+    assert saqc.options.plotting.test_mode is True
     data = pd.DataFrame(
         {f"d{k}": np.random.randint(0, 100, 100) for k in range(10)},
         index=pd.date_range("2000", freq="1d", periods=100),
@@ -55,3 +56,4 @@ def test_flagByClick():
     qc = saqc.SaQC(data)
     qc = qc.flagByClick(data.columns, gui_mode="overlay")
     qc = qc.flagByClick(data.columns)
+    saqc.options.plotting.test_mode = False

@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import copy as _copy
-import inspect
+import sys
 from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
@@ -15,13 +15,13 @@ import pandas as pd
 from pandas.api.types import is_float_dtype
 
 from saqc import UNFLAGGED
+from saqc.options import deprecateOptions, history
 
-AGGRGEGATIONS = {
-    "last": lambda x: x.ffill(axis=1).iloc[:, -1],
-    "max": lambda x: x.max(axis=1),
-    "min": lambda x: x.min(axis=1),
-}
-AGGREGATION = "last"
+deprecateOptions(
+    module_name=__name__,
+    options_name="history",
+    deprecations={"AGGREGATIONS": "aggregations", "AGGREGATION": "aggregation"},
+)
 
 
 class History:
@@ -330,7 +330,7 @@ class History:
             else:
                 result = hist.squeeze()  # thats the pandas squeeze, not the history one
         else:
-            result = AGGRGEGATIONS[AGGREGATION](hist)
+            result = history.aggregations[history.aggregation](hist)
         if not raw:
             result = result.fillna(UNFLAGGED)
         result.name = None
