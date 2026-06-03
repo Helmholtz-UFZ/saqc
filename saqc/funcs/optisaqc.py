@@ -282,6 +282,7 @@ class OptiSaqcMixin:
         problem_classes = [None] * p_n
         trg_flags = [None] * p_n
         trg_join = pd.Series(False, index=self.data[sv_field][_dat_slice].index)
+        scores_lines = [None] * p_n
 
         # can now assume field_sv is supervised
         for i_sv in range(p_n):
@@ -339,8 +340,8 @@ class OptiSaqcMixin:
 
                 opt_results[i] = minimize(
                     problem=problem_instances[i],
+                    save_history=True,
                     seed=optimization.seed,
-                    save_history=log_pop,
                     verbose=verbose,
                     **optimizer_paras,
                 )
@@ -364,7 +365,26 @@ class OptiSaqcMixin:
 
                 if problem_instances[i].mode == 0:
                     problem_instances[i].switchMode(opt_results[i])
+
                 else:
+                    # extract scores line:
+                    scores_line = []
+                    for gen in range(len(opt_results[i].history)):
+                        m = np.all(
+                            opt_results[i].history[gen].pop.get("G") <= 0, axis=1
+                        )
+                        f_index = opt_results[i].history[gen].pop.get("F")[m]
+                        x_values = opt_results[i].history[gen].pop.get("X")[m]
+                        # make array shapes predictable (shape(arr) == (len(arr),)
+                        m = m.reshape(max(m.shape))
+                        f_index = f_index.reshape(max(f_index.shape))
+                        x_values = x_values.reshape(max(x_values.shape))
+                        scores_line.append(
+                            pd.DataFrame(x_values.tolist(), index=f_index)
+                        )
+
+                    d = pd.concat(scores_line, axis=0).sort_index()
+                    scores_lines[i] = d.iloc[~d.index.duplicated(), :]
                     # try to free cache...
                     if hasattr(problem_instances[i]._cache, "cache_clear"):
                         problem_instances[i]._cache.cache_clear()
@@ -388,10 +408,13 @@ class OptiSaqcMixin:
 
         if name is not None:  # add the optimised pipeline as a method to ``SaQC`` class
 
-            def pipeFunc(self: "SaQC", field: str, **kwargs):
+            def pipeFunc(
+                self: "SaQC", field: str, x_scaling=None, write_config=None, **kwargs
+            ):
                 # use the label passed with the call (if one was passed) as prefix for the pipeline labels:
                 _label = kwargs.pop("label", "")
                 _label = _label + "_" if len(_label) > 0 else _label
+                scaled_x = [None] * len(problem_instances)
                 # problem by problem:
                 for i, p in enumerate(problem_instances):
                     # retrieve conversion from opt space to saqc space
@@ -399,25 +422,43 @@ class OptiSaqcMixin:
                     # adjust label assigned with the problem
                     anomaly_type = problem_labels[i]
                     _kwargs = dict(label=_label + anomaly_type, **kwargs)
+                    if x_scaling is not None:
+                        i_start, i_end = (
+                            scores_lines[i].index[0],
+                            scores_lines[i].index[-1],
+                        )
+                        x_target = i_start + (1 - x_scaling) * (i_end - i_start)
+                        x_row = scores_lines[i].index.get_indexer(
+                            [x_target], method="nearest"
+                        )[0]
+                        x_val = scores_lines[i].iloc[x_row, :].to_dict()
+                    else:
+                        x_val = opt_results[i].X
+                    scaled_x[i] = x_val
                     # if problem is flags assigning only, just append problems func body to the callchain
                     if p.processing_type == "flags":
-                        self = p.funcBody(
-                            self, field, conv(opt_results[i].X), **_kwargs
-                        )
+                        self = p.funcBody(self, field, conv(x_val), **_kwargs)
                     # if problem manipulates data values, assign the problem a side chain for processing and transfer
                     # flags onto targeted field afterwards
                     elif p.processing_type == "data":
                         tmp_field = "VAR" + str(uuid).replace("-", "_")
                         self = self.copyField(field, tmp_field)
-                        self = p.funcBody(
-                            self, tmp_field, conv(opt_results[i].X), **_kwargs
-                        )
+                        self = p.funcBody(self, tmp_field, conv(x_val), **_kwargs)
                         self = self.transferFlags(
                             tmp_field, field, squeeze=False
                         ).dropField(tmp_field)
                     else:
                         raise ValueError(f"Whats your problem? Got {p.processing_type}")
 
+                if write_config is not None:
+                    print(scaled_x)
+                    _config_log(
+                        write_config,
+                        problem_instances,
+                        problem_labels,
+                        scaled_x,
+                        verbose,
+                    )
                 return self
 
             setattr(pipeFunc, "__name__", name)
@@ -580,21 +621,25 @@ def _printSequenceSolution(
         print(problem_str + _individualStr(opt_results[i].X) + "\n")
 
 
-def _config_log(log_path, problem_instances, problem_labels, opt_results, verbose):
+def _config_log(config_path, problem_instances, problem_labels, opt_results, verbose):
     """
     Generates the config file (string) from the problems fixated config attributes
     by
         * assigning fields/targets to varname column/signature positions
         * adding keywords that were implicitly set with their default values to the signatures.
     """
-    config_path = os.path.join(log_path, "config.csv")
+    if not config_path.endswith(".csv"):  # got log to log to
+        config_path = os.path.join(config_path, "config.csv")
     var = problem_instances[0].var
     ex = tuple()
     varnames = []
     funcs = []
     fixed_config = []
+    if not isinstance(opt_results[0], dict):  # if pymoo.results object was passed
+        opt_results = [res.X for res in opt_results]
+    print(opt_results)
     for i, prob in enumerate(problem_instances):
-        C = prob.getFixedConfig(var, ex, opt_results[i].X, problem_labels[i])
+        C = prob.getFixedConfig(var, ex, opt_results[i], problem_labels[i])
         for c in C:  # for c in C (=list of config line represetations)
             funcs += [c[0]]  # collect function name
             nC = c[1].copy()  # retrieve function signature dictionary

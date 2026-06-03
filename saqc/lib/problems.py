@@ -190,7 +190,7 @@ class SaQCProblem(ABC, ElementwiseProblem):
         else:
             label = {"label": label}
 
-        fix_conf = self.config.copy()
+        fix_conf = [(f_str, f_dict.copy()) for (f_str, f_dict) in self.config]
         for c in fix_conf:
             # fixate the signature by calling the Callables it holds
             for k, v in c[1].items():
