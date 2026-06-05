@@ -29,7 +29,7 @@ from saqc.funcs.scores import _density
 from saqc.lib.tools import getFreqDelta, timedeltaToOffset, toSequence
 
 ANOMALY_ALIAS = dict(
-    FitUniLOF=["outLOF"], # UniLOF problem overfits in current configuration.
+    FitUniLOF=["outLOF"],  # UniLOF problem overfits in current configuration.
     FitZScorePipeline=["outlier", "outliers", "spike", "spikes"],
     FitZScore=["outlierz", "outlierz", "spikez"],
     FitConstants=["constants", "constant"],
