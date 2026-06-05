@@ -6,52 +6,102 @@
 Users & Partners
 ----------------
 
-.. grid:: 3
-   :gutter: 2
+.. grid:: 4
+   :gutter: 1
+   :class-row: align-items-start
 
    .. grid-item-card::
-      :img-background: ../resources/images/partners/ActrisLogo.png
+      :img-top: ../resources/images/partners/ActrisLogo.png
       :link: https://www.actris.eu/
+      :link-type: url
+      :class-card: sd-border-0 sd-height-auto
+      :class-body: sd-bg-transparent sd-p-0
 
    .. grid-item-card::
-      :img-background: ../resources/images/partners/AiamoLogo.png
+      :img-top: ../resources/images/partners/AiamoLogo.png
       :link: https://aiamo.de/en
+      :link-type: url
+      :class-card: sd-border-0 sd-height-auto
+      :class-body: sd-bg-transparent sd-p-0
 
    .. grid-item-card::
-      :img-background: ../resources/images/partners/eLTERLogo.png
+      :img-top: ../resources/images/partners/METEariannLogo.png
       :link: https://elter-ri.eu/
+      :link-type: url
+      :class-card: sd-border-0 sd-height-auto
+      :class-body: sd-bg-transparent sd-p-0
 
    .. grid-item-card::
-      :img-background: ../resources/images/partners/MosesLogo.png
+      :img-top: ../resources/images/partners/MosesLogo.png
       :link: https://www.ufz.de/moses/
+      :link-type: url
+      :class-card: sd-border-0 sd-height-auto
+      :class-body: sd-bg-transparent sd-p-0
 
    .. grid-item-card::
-      :img-background: ../resources/images/partners/TerenoLogo.png
+      :img-top: ../resources/images/partners/TerenoLogo.png
       :link: https://www.tereno.net/
+      :link-type: url
+      :class-card: sd-border-0 sd-height-auto
+      :class-body: sd-bg-transparent sd-p-0
 
    .. grid-item-card::
-      :img-background: ../resources/images/partners/TroposLogo.png
+      :img-top: ../resources/images/partners/TroposLogo.png
       :link: https://www.tropos.de/
+      :link-type: url
+      :class-card: sd-border-0 sd-height-auto
+      :class-body: sd-bg-transparent sd-p-0
 
    .. grid-item-card::
-      :img-background: ../resources/images/partners/BAWLogo.png
+      :img-top: ../resources/images/partners/BAWLogo.png
       :link: https://www.baw.at/
+      :link-type: url
+      :class-card: sd-border-0 sd-height-auto
+      :class-body: sd-bg-transparent sd-p-0
 
    .. grid-item-card::
-      :img-background: ../resources/images/partners/BfGLogo.png
+      :img-top: ../resources/images/partners/BfGLogo.png
       :link: https://gcos.dwd.de/DWD-GCOS/DE/nationalepartner/bfg/bfg_node.html
+      :link-type: url
+      :class-card: sd-border-0 sd-height-auto
+      :class-body: sd-bg-transparent sd-p-0
 
    .. grid-item-card::
-      :img-background: ../resources/images/partners/DWDLogo.png
+      :img-top: ../resources/images/partners/DWDLogo.png
       :link: https://www.dwd.de/
+      :link-type: url
+      :class-card: sd-border-0 sd-height-auto
+      :class-body: sd-bg-transparent sd-p-0
 
    .. grid-item-card::
-      :img-background: ../resources/images/partners/METEariannLogo.png
+      :img-top: ../resources/images/partners/eLTERLogo.png
       :link: https://www.met.ie/
+      :link-type: url
+      :class-card: sd-border-0 sd-height-auto
+      :class-body: sd-bg-transparent sd-p-0
 
 
-Publications
-------------
+Citing SaQC
+-----------
+
+Reference Paper
+^^^^^^^^^^^^^^^
+
+.. list-table::
+
+   * - Schmidt, L., Schäfer, D., Geller, J., Lünenschloss, P., Palm, B., Rinke, K., Rebmann, C., Rode, M., & Bumberger, J. (2023). System for automated Quality Control (SaQC) to enable traceable and reproducible data streams in environmental science. Environmental Modelling & Software, 169, 105809.
+     - https://doi.org/10.1016/j.envsoft.2023.105809
+
+Software
+^^^^^^^^
+
+.. list-table::
+
+   * - Schäfer, D., Palm, B., Lünenschloß, P., Schmidt, L., & Bumberger, J. System for automated Quality Control – SaQC. Zenodo.
+     - https://doi.org/10.5281/zenodo.5888547
+
+Selected Publications
+---------------------
 
 Scientific Applications
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -103,17 +153,3 @@ Data Infrastructures
      - https://doi.org/10.1016/j.envsoft.2025.106637
    * - Zacharias, S., Loescher, H. W., Bogena, H., Kiese, R., Schrön, M., Attinger, S., Blume, T., Borchardt, D., Borg, E., Bumberger, J., Chwala, C., Dietrich, P., Fersch, B., Frenzel, M., Gaillardet, J., Groh, J., Hajnsek, I., Itzerott, S., Kunkel, R., Kunstmann, H., Kunz, M., Liebner, S., Mirtl, M., Montzka, C., Musolff, A., Pütz, T., Rebmann, C., Rinke, K., Rode, M., Sachs, T., Samaniego, L., Schmid, H. P., Vogel, H.-J., Weber, U., Wollschläger, U., & Vereecken, H. (2024). Fifteen years of integrated terrestrial environmental observatories (TERENO) in Germany: Functions, services, and lessons learned. Earth’s Future, 12, e2024EF004510.
      - https://doi.org/10.1029/2024EF004510
-
-Citing SaQC
------------
-
-If SaQC is advancing your research, please cite the software (ideally the exact version you used) and the reference paper:
-
-Reference Paper
-^^^^^^^^^^^^^^^
-
-.. list-table::
-
-   * - Schmidt, L., Schäfer, D., Geller, J., Lünenschloss, P., Palm, B., Rinke, K., Rebmann, C., Rode, M., & Bumberger, J. (2023). System for automated Quality Control (SaQC) to enable traceable and reproducible data streams in environmental
-
-
