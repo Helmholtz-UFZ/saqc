@@ -11,6 +11,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `SaQC.calibratePipeline`: `x_scaling` kw allows for scaling parameterisation along optimal solutions
 - `options` module
 - `SaQC.align`: `tolerance` keyword added: allows for extending validation scope when align-interpolating
+- Python 3.14 support
+- Support for ``andas.Series` method calls in generic function strings
 ### Changed
 `SaQC.flagPlateau`: switched wavelet provider from `scipy.signal.cwt` to `pywt.cwt`
 ### Removed
