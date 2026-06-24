@@ -6,8 +6,6 @@
 
 # -*- coding: utf-8 -*-
 
-import ast
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -15,9 +13,8 @@ import pytest
 from saqc import BAD, UNFLAGGED, DictOfSeries, Flags, SaQC
 from saqc.core import register
 from saqc.core.flags import initFlagsLike
-from saqc.funcs.generic import _execGeneric
+from saqc.funcs.generic import compileGeneric, execGeneric
 from saqc.parsing.reader import _ConfigReader
-from saqc.parsing.visitor import ConfigFunctionParser
 from tests.common import initData
 
 
@@ -41,33 +38,22 @@ def data_diff():
     )
 
 
-def _compileGeneric(expr):
-    tree = ast.parse(expr, mode="eval")
-    _, kwargs = ConfigFunctionParser().parse(tree.body)
-    return kwargs["func"]
-
-
 @pytest.mark.parametrize(
-    "expr",
+    "expr, error",
     [
-        "range(x=5",
-        "rangex=5)",
-        "range[x=5]" "range{x=5}" "int->float(x=4)" "int*float(x=4)",
+        ("range(x=5", SyntaxError),
+        ("rangex=5)", SyntaxError),
+        ("range[x=5]", SyntaxError),
+        ("range{x=5}", SyntaxError),
+        ("x.groupby(by='y')", AttributeError),
+        ("lambda x: x * 2", TypeError),
+        ("x + x.loc['2012-01-01']", TypeError),
+        ("x.mean({'a': 1})", TypeError),
     ],
 )
-def test_syntaxError(expr):
-    with pytest.raises(SyntaxError):
-        _compileGeneric(f"flag(func={expr})")
-
-
-# TODO: think about cases that should be forbidden
-@pytest.mark.parametrize("expr", ["lambda x: x * 2"])
-def test_typeError(expr):
-    """
-    test that forbidden constructs actually throw an error
-    """
-    with pytest.raises(TypeError):
-        _compileGeneric(f"flagGeneric(func={expr})")
+def test_invalid_constructs(expr, error):
+    with pytest.raises(error):
+        compileGeneric(expr)
 
 
 @pytest.mark.parametrize(
@@ -75,7 +61,7 @@ def test_typeError(expr):
     [
         (["var1"], "x > 100", 'data["var1"] > 100'),
         (["var2"], "10 >= y", '10 >= data["var2"]'),
-        (["var2"], f"y < 100", 'data["var2"] < 100'),
+        (["var2"], "y < 100", 'data["var2"] < 100'),
         (["var1", "var2"], "x <= y", 'data["var1"] <= data["var2"]'),
         (["var1", "var2"], "x == y", 'data["var1"] == data["var2"]'),
         (["var1", "var2"], "x != y", 'data["var1"] != data["var2"]'),
@@ -84,8 +70,8 @@ def test_typeError(expr):
 def test_comparisonOperators(data, fields, expr, expected):
     expected = eval(expected)
     flags = initFlagsLike(data)
-    func = _compileGeneric(f"flagGeneric(func={expr})")
-    result = _execGeneric(Flags({f: flags[f] for f in fields}), data[fields], func)
+    func = compileGeneric(expr)
+    result = execGeneric(Flags({f: flags[f] for f in fields}), data[fields], func)
     assert (result == expected).all(axis=None)
 
 
@@ -103,8 +89,8 @@ def test_comparisonOperators(data, fields, expr, expected):
 def test_arithmeticOperators(data, expr, expected):
     expected = eval(expected)
     flags = Flags({"var1": pd.Series(UNFLAGGED, index=data["var1"].index)})
-    func = _compileGeneric(f"processGeneric(func={expr})")
-    result = _execGeneric(flags, data["var1"], func)
+    func = compileGeneric(expr)
+    result = execGeneric(flags, data["var1"], func)
     assert (result == expected).all(axis=None)
 
 
@@ -120,8 +106,8 @@ def test_nonReduncingBuiltins(data):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"processGeneric(func={test})")
-        result = _execGeneric(flags, data, func)
+        func = compileGeneric(test)
+        result = execGeneric(flags, data, func)
         assert (result == expected).all(axis=None)
 
 
@@ -136,13 +122,13 @@ def test_bitOps(data):
     ]
 
     for field, test, expected in tests:
-        func = _compileGeneric(f"flagGeneric(func={test})")
-        result = _execGeneric(Flags({f: flags[f] for f in field}), data[field], func)
+        func = compileGeneric(test)
+        result = execGeneric(Flags({f: flags[f] for f in field}), data[field], func)
         assert (result == expected).all(axis=None)
 
 
 def test_variableAssignments(data):
-    config = f"""
+    config = """
     varname ; test
     dummy1  ; processGeneric(field=["var1", "var2"], func=x + y)
     dummy2  ; flagGeneric(field=["var1", "var2"], func=x + y > 0)
@@ -157,7 +143,7 @@ def test_variableAssignments(data):
 
 
 def test_processExistingTarget(data):
-    config = f"""
+    config = """
     varname ; test
     var2   ; flagMissing()
     var2   ; processGeneric(func=y - 1)
@@ -172,7 +158,7 @@ def test_processExistingTarget(data):
 
 
 def test_flagTargetExisting(data):
-    config = f"""
+    config = """
     varname ; test
     dummy   ; processGeneric(field="var1", func=x < 1)
     dummy   ; processGeneric(field="var2", func=y >1)
@@ -184,7 +170,7 @@ def test_flagTargetExisting(data):
 
 
 def test_processTargetExistingFail(data_diff):
-    config = f"""
+    config = """
     varname ; test
     dummy   ; processGeneric(field="var1", func=x + 1)
     dummy   ; processGeneric(field="var2", func=y - 1)
@@ -196,7 +182,7 @@ def test_processTargetExistingFail(data_diff):
 
 
 def test_flagTargetExistingFail(data_diff):
-    config = f"""
+    config = """
     varname ; test
     dummy   ; flagGeneric(field="var1", func=x < 1)
     dummy   ; flagGeneric(field="var2", func=y > 1)
@@ -273,17 +259,35 @@ def test_isflagged(data):
     flags[data[var1].index[::2], var1] = BAD
 
     tests = [
-        ([var1], f"isflagged(x)", flags[var1] > UNFLAGGED),
-        ([var1], f"isflagged(x)", flags[var1] >= BAD),
-        ([var2], f"~isflagged(x)", flags[var2] == UNFLAGGED),
+        ([var1], "isflagged(x)", flags[var1] > UNFLAGGED),
+        ([var1], "isflagged(x)", flags[var1] >= BAD),
+        ([var2], "~isflagged(x)", flags[var2] == UNFLAGGED),
         (
             [var1, var2],
-            f"~(x > 999) & (~isflagged(y))",
+            "~(x > 999) & (~isflagged(y))",
             ~(data[var1] > 999) & (flags[var2] == UNFLAGGED),
         ),
     ]
 
     for field, test, expected in tests:
-        func = _compileGeneric(f"flagGeneric(func={test}, flag=BAD)")
-        result = _execGeneric(Flags({f: flags[f] for f in field}), data[field], func)
+        func = compileGeneric(test)
+        result = execGeneric(Flags({f: flags[f] for f in field}), data[field], func)
         assert (result == expected).all(axis=None)
+
+
+@pytest.mark.parametrize(
+    "func_string, expected, n_args",
+    [
+        ("x.rolling(window=10).mean()", lambda x: x.rolling(window=10).mean(), 1),
+        ("x.resample('D').sum()", lambda x: x.resample("D").sum(), 1),
+        ("x / x.var()", lambda x: x / x.var(), 1),
+        ("x / y.var()", lambda x, y: x / y.var(), 2),
+        ("y / z.cummax()", lambda x, y: x / y.cummax(), 2),
+    ],
+)
+def test_pandas_methods(data, func_string, expected, n_args):
+
+    test_data = data[data.columns[:n_args]]
+    func = compileGeneric(func_string)
+    result = func(*test_data.values())
+    assert result.equals(expected(*test_data.values()))

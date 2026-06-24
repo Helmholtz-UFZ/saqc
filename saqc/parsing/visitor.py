@@ -10,24 +10,14 @@ import ast
 import importlib
 
 from saqc.core.register import FUNC_MAP
+from saqc.options import parsing
 from saqc.parsing.environ import ENVIRONMENT
 
 
 class ConfigExpressionParser(ast.NodeVisitor):
-    """
-    Generic configuration functions will be rewritten as lambda functions
-    and all defined variables will act as arguments, e.g.:
-    ``flagGeneric(func=(x != 4) & (y < 3))`` will be rewritten to
-    ``lambda x, y: (x != 4) & (y < 3)``
-
-    The main purpose of this class is to identify all variables used in
-    a given generic function and to check that it does not violate the
-    restrictions imposed onto generic functions.
-    """
-
     SUPPORTED = (
-        ast.Constant,
         ast.Expression,
+        ast.Constant,
         ast.UnaryOp,
         ast.BinOp,
         ast.BitOr,
@@ -50,6 +40,8 @@ class ConfigExpressionParser(ast.NodeVisitor):
         ast.Name,
         ast.Load,
         ast.Call,
+        ast.Attribute,
+        # ast.Lambda,
     )
 
     def __init__(self, node):
@@ -60,24 +52,54 @@ class ConfigExpressionParser(ast.NodeVisitor):
     def args(self):
         return tuple(dict.fromkeys(self._args))
 
-    def visit_Call(self, node):
-        # only non-keyword arguments allowed
-        # in generic functions
-        for n in node.args:
-            self.visit(n)
+    def generic_visit(self, node):
+        if not isinstance(node, self.SUPPORTED):
+            raise TypeError(
+                f"invalid generic function construct: {type(node).__name__}"
+            )
+        return super().generic_visit(node)
 
     def visit_Name(self, node):
-        # NOTE:
-        # anything not in ENVIRONMENT should be an argument of the generic function
+        if not isinstance(node.ctx, ast.Load):
+            raise TypeError("only variable loading is allowed")
+
         name = node.id
         if name not in ENVIRONMENT:
             self._args.append(name)
+
         self.generic_visit(node)
 
-    def generic_visit(self, node):
-        if not isinstance(node, self.SUPPORTED):
-            raise TypeError(f"invalid expression: '{node}'")
-        return super().generic_visit(node)
+    def visit_Call(self, node):
+        if not isinstance(node.func, (ast.Attribute, ast.Name)):
+            raise TypeError("invalid call target")
+
+        if isinstance(node.func, ast.Attribute):
+            method_name = node.func.attr
+
+            if method_name.startswith("_"):
+                raise TypeError("private methods are not allowed")
+
+            if method_name not in parsing.allowed_series_methods:
+                raise AttributeError(f"unknown attribute: '{method_name}'")
+
+            # Visit the object the method is called on:
+            self.visit(node.func.value)
+
+        for arg in node.args:
+            self.visit(arg)
+
+        for kw in node.keywords:
+            if kw.arg is None:
+                raise TypeError("**kwargs are not allowed")
+            self.visit(kw.value)
+
+    # def visit_Lambda(self, node):
+    #     pass
+
+    def visit_Attribute(self, node):
+        # Attribute access is only allowed as a method call handled in visit_Call.
+        # This rejects ds1.index, ds1.values, ds1.__class__, etc.
+        raise TypeError("attribute access is only allowed for whitelisted method calls")
 
 
 class ConfigFunctionParser(ast.NodeVisitor):

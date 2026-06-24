@@ -7,7 +7,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional, Protocol, Sequence, runtime_checkable
+import ast
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 import pandas as pd
@@ -23,6 +24,7 @@ from saqc.lib.types import (
     ValidatePublicMembers,
 )
 from saqc.parsing.environ import ENVIRONMENT
+from saqc.parsing.visitor import ConfigFunctionParser
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -49,7 +51,28 @@ def _flagSelect(field: str, flags: Flags, label: str | None = None) -> pd.Series
     return out.fillna(-np.inf)
 
 
-def _execGeneric(
+def compileGeneric(
+    expr: str,
+) -> Callable[[*tuple[pd.Series, ...]], tuple[pd.Series, ...]]:
+    """
+    Compile a generic function expression into a Python callable.
+
+    Parameters
+    ----------
+    expr : str
+        A string describing a generic function expression, e.g.
+        ``"x / x.mean()"``.
+
+    Returns
+    -------
+    A lambda function implementing the supplied expression.
+    """
+    tree = ast.parse(f"processGeneric(func={expr})", mode="eval")
+    _, kwargs = ConfigFunctionParser().parse(tree.body)
+    return kwargs["func"]
+
+
+def execGeneric(
     flags: Flags,
     data: pd.DataFrame | pd.Series | DictOfSeries,
     func: GenericFunction,
@@ -62,7 +85,7 @@ def _execGeneric(
         **ENVIRONMENT,
     }
 
-    # some function don't have a globals attribute (e.g. np.sum)
+    # some functions don't have a globals attribute (e.g. np.sum)
     if not hasattr(func, "__globals__"):
         func.__globals__ = {}
     func.__globals__.update(globs)
@@ -175,7 +198,7 @@ class GenericMixin(ValidatePublicMembers):
 
         dchunk, fchunk = self._data[fields].copy(), self._flags[fields].copy()
         trg_idx = dchunk[dchunk.columns[0]].index
-        result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
+        result = execGeneric(fchunk, dchunk, func, dfilter=dfilter)
         result = _inferBroadcast(result, (len(trg_idx), len(targets)))
         result = _inferDF(result, cols=targets, index=trg_idx)
         result = _castResult(result)
@@ -261,7 +284,7 @@ class GenericMixin(ValidatePublicMembers):
 
         dchunk, fchunk = self._data[fields].copy(), self._flags[fields].copy()
         trg_idx = dchunk[dchunk.columns[0]].index
-        result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
+        result = execGeneric(fchunk, dchunk, func, dfilter=dfilter)
         result = _inferBroadcast(result, (len(trg_idx), len(targets)))
         result = _inferDF(result, cols=targets, index=trg_idx)
         result = _castResult(result)
