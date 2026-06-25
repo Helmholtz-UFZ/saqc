@@ -10,6 +10,11 @@ docs/_api
 docs/_build
 docs/resources/temp/*
 coverage.xml
+build/
+dist/
+release-dist/
+test-dist/
+*.egg-info/
 venv*/
 **/.*
 .venv

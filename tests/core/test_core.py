@@ -632,6 +632,11 @@ def test_options():
     with pytest.warns(DeprecationWarning):
         saqc.core.history.AGGREGATIONS
 
+    with pytest.warns(
+        DeprecationWarning, match=r"saqc\.options\.history\.aggregations"
+    ):
+        assert saqc.core.history.AGGRGEGATIONS is saqc.options.history.aggregations
+
     with pytest.warns(DeprecationWarning):
         saqc.core.history.AGGREGATION = "test"
         assert saqc.options.history.aggregation == "test"

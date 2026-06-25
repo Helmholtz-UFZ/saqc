@@ -7,14 +7,13 @@
 # Hints
 # ===========================================================
 
-# $PYPI_PKG_NAME
-#   The variable PYPI_PKG_NAME is used in setup.py to determine
-#   how to name the tarball package. If not set the package is
-#   named 'saqc'.
-
 # $TESTPYPI_TOKEN
 #   The upload token used for testpypi, set it on the gitlab
 #   page and enable masking to prevent revealing
+
+# $PYPI_TOKEN
+#   The upload token used for production PyPI releases. Configure it as a
+#   masked and protected GitLab variable, and protect release tags.
 
 # ===========================================================
 # preparation
@@ -145,7 +144,6 @@ python314:
     reports:
       junit: report.xml
 
-
 doctest:
   stage: test
   variables:
@@ -165,8 +163,6 @@ doctest:
 wheel311:
   stage: build
   image: python:3.11
-  variables:
-    PYPI_PKG_NAME: "saqc-dev"
   script:
     - pip install wheel
     - pip wheel .
@@ -176,8 +172,6 @@ wheel311:
 wheel312:
   stage: build
   image: python:3.12
-  variables:
-    PYPI_PKG_NAME: "saqc-dev"
   script:
     - pip install wheel
     - pip wheel .
@@ -187,8 +181,6 @@ wheel312:
 wheel313:
   stage: build
   image: python:3.13
-  variables:
-    PYPI_PKG_NAME: "saqc-dev"
   script:
     - pip install wheel
     - pip wheel .
@@ -198,13 +190,29 @@ wheel313:
 wheel314:
   stage: build
   image: python:3.14
-  variables:
-    PYPI_PKG_NAME: "saqc-dev"
   script:
     - pip install wheel
     - pip wheel .
     - pip install .
     - python -c 'import saqc; print(f"{saqc.__version__=}")'
+
+release_dist:
+  stage: build
+  image: python:3.13
+  before_script: []
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+  script:
+    - pip install --upgrade pip
+    - pip install build twine
+    - python -m build --outdir release-dist
+    - test -f "release-dist/saqc-${CI_COMMIT_TAG#v}-py3-none-any.whl"
+    - test -f "release-dist/saqc-${CI_COMMIT_TAG#v}.tar.gz"
+    - twine check --strict release-dist/*
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - release-dist/
 
 # ===========================================================
 # Extra Pipeline (run with a successful run of all other jobs on develop)
@@ -217,14 +225,36 @@ upload_testpypi:
   except:
     - schedules
   variables:
-    PYPI_PKG_NAME: "saqc-dev"
-    TWINE_USERNAME: __token__
+    TWINE_USERNAME: "__token__"
     TWINE_PASSWORD: $TESTPYPI_TOKEN
   script:
     - pip install build twine
-    - python -m build
-    - twine check --strict dist/*
-    - twine upload -r testpypi dist/*
+    - python -m build --outdir test-dist
+    - twine check --strict test-dist/*
+    - twine upload -r testpypi test-dist/*
+
+publish_pypi:
+  stage: deploy
+  image: python:3.13
+  before_script: []
+  needs:
+    - job: release_dist
+      artifacts: true
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      when: manual
+    - when: never
+  allow_failure: false
+  variables:
+    TWINE_USERNAME: "__token__"
+    TWINE_PASSWORD: $PYPI_TOKEN
+  script:
+    - pip install --upgrade pip
+    - pip install twine
+    - twine check --strict release-dist/*
+    - twine upload release-dist/*
+  environment:
+    name: pypi
 
 
 # make html docu with sphinx
