@@ -20,7 +20,11 @@ from saqc.options import deprecateOptions, history
 deprecateOptions(
     module_name=__name__,
     options_name="history",
-    deprecations={"AGGREGATIONS": "aggregations", "AGGREGATION": "aggregation"},
+    deprecations={
+        "AGGRGEGATIONS": "aggregations",
+        "AGGREGATIONS": "aggregations",
+        "AGGREGATION": "aggregation",
+    },
 )
 
 

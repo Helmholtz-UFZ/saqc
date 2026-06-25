@@ -53,7 +53,7 @@ def deprecateOptions(
     def warn(name: str) -> None:
         warnings.warn(
             f"{module_name}.{name} is deprecated and will be removed in SaQC 2.10. "
-            f"Use {module_name}.{options_name}.{deprecations[name]} instead.",
+            f"Use {__name__}.{options_name}.{deprecations[name]} instead.",
             DeprecationWarning,
             stacklevel=3,
         )

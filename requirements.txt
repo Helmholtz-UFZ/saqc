@@ -11,7 +11,6 @@ numpy==2.4.6
 pyarrow==24.0.0
 pymoo==0.6.1.6
 pandas==3.0.3
-polars==1.41.2
 scikit-learn==1.8.0
 scipy==1.17.1
 pydantic==2.13.4

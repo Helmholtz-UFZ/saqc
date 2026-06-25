@@ -5,21 +5,31 @@ SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 # Changelog
+
 ## Unreleased
-[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.8.0...main)
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.9.0...main)
+### Added
+### Changed
+### Removed
+### Fixed
+### Deprecated
+
+
+## [2.9.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.9.0) - 2026-06-24
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.8.0...v2.9.0)
 ### Added
 - `SaQC.calibratePipeline`: `x_scaling` kw allows for scaling parameterisation along optimal solutions
 - `options` module
 - `SaQC.align`: `tolerance` keyword added: allows for extending validation scope when align-interpolating
 - Python 3.14 support
-- Support for ``andas.Series` method calls in generic function strings
+- Support for ``pandas.Series` method calls in generic function strings
 ### Changed
 `SaQC.flagPlateau`: switched wavelet provider from `scipy.signal.cwt` to `pywt.cwt`
 ### Removed
 ### Fixed
 ### Deprecated
-- Option `saqc.core.history.AGGRGEATION` in favor of `saqc.options.history.aggregation`
-- Option `saqc.core.history.AGGRGEATIONS` in favor of `saqc.options.history.aggregations`
+- Option `saqc.core.history.AGGREGATION` in favor of `saqc.options.history.aggregation`
+- Option `saqc.core.history.AGGRGEGATIONS` in favor of `saqc.options.history.aggregations`
 - Option `saqc.funcs.tools._MPL_DEFAULT_BACKEND` in favor of `saqc.options.plotting.backend`
 - Option `saqc.funcs.tools._TEST_MODE` in favor of `saqc.options.plotting.test_mode`
 - Option `saqc.funcs.optisaqc.OPT_SEED` in favor of `saqc.options.optimization.seed`

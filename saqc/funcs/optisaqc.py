@@ -340,6 +340,7 @@ class OptiSaqcMixin:
 
                 opt_results[i] = minimize(
                     problem=problem_instances[i],
+                    return_least_infeasible=True,
                     save_history=True,
                     seed=optimization.seed,
                     verbose=verbose,
@@ -349,7 +350,10 @@ class OptiSaqcMixin:
                 if opt_results[i] is None:
                     return self
 
-                if not hasattr(opt_results[i], "X"):
+                if (
+                    getattr(opt_results[i], "X", None) is None
+                    or getattr(opt_results[i], "F", None) is None
+                ):
                     raise NotImplementedError("No valid solution found.")
 
                 if falsific_score[i] is None:
