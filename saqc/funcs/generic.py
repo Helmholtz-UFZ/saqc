@@ -17,6 +17,7 @@ from saqc import BAD, FILTER_ALL
 from saqc.core import DictOfSeries, Flags, register
 from saqc.lib.tools import isAllBoolean, isflagged, isunflagged, toSequence
 from saqc.lib.types import (
+    EXTERNAL_FLAG,
     GenericFunction,
     NewSaQCFields,
     SaQCColumns,
@@ -233,7 +234,7 @@ class GenericMixin(ValidatePublicMembers):
         field: SaQCFields,
         func: GenericFunction,
         target: SaQCColumns | NewSaQCFields | None = None,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """

@@ -21,6 +21,7 @@ from saqc.lib.rolling import removeRollingRamps
 from saqc.lib.tools import getFreqDelta, statPass
 from saqc.lib.ts_operators import varQC
 from saqc.lib.types import (
+    EXTERNAL_FLAG,
     Float,
     Int,
     OffsetStr,
@@ -37,10 +38,10 @@ class ConstantsMixin(ValidatePublicMembers):
     def flagConstants(
         self: SaQC,
         field: SaQCFields,
-        thresh: Float >= 0,
         window: OffsetStr | (Int >= 1),
+        thresh: Float >= 0 = 0,
         min_periods: Int >= 0 = 2,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -94,7 +95,7 @@ class ConstantsMixin(ValidatePublicMembers):
         thresh: Float >= 0,
         maxna: (Int >= 0) | None = None,
         maxna_group: (Int >= 0) | None = None,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """

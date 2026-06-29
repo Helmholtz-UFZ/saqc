@@ -18,10 +18,6 @@ from saqc.parsing.environ import ENV_TRAFOS
 
 if TYPE_CHECKING:
     from saqc import SaQC
-else:
-    from saqc.lib.types import SaQC
-
-from typing import TYPE_CHECKING
 
 from saqc.lib.types import (
     AGG_FUNC_LITERALS,

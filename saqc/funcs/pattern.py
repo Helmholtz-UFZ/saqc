@@ -21,6 +21,7 @@ from saqc.funcs.outliers import _stray
 from saqc.lib.rolling import removeRollingRamps
 from saqc.lib.tools import getFreqDelta
 from saqc.lib.types import (
+    EXTERNAL_FLAG,
     Float,
     Int,
     OffsetStr,
@@ -638,7 +639,7 @@ class PatternMixin(ValidatePublicMembers):
         max_length: (Int > 0) | OffsetStr | None = None,
         min_jump: (Float >= 0) | None = None,
         granularity: (Int > 0) | OffsetStr | None = None,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -749,7 +750,7 @@ class PatternMixin(ValidatePublicMembers):
         max_distance: Float >= 0 = 0.0,
         normalize: bool = True,
         plot: bool = False,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
