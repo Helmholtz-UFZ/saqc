@@ -19,6 +19,7 @@ from saqc.constants import BAD
 from saqc.core.register import flagging
 from saqc.lib.tools import isunflagged, statPass
 from saqc.lib.types import (
+    EXTERNAL_FLAG,
     Float,
     Int,
     OffsetStr,
@@ -45,7 +46,7 @@ class NoiseMixin(ValidatePublicMembers):
         sub_window: OffsetStr | pd.Timedelta | None = None,
         sub_thresh: (Float >= 0) | None = None,
         min_periods: (Int >= 0) | None = None,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """

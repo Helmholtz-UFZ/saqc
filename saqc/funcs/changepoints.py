@@ -14,7 +14,13 @@ import pandas as pd
 
 from saqc import BAD, UNFLAGGED
 from saqc.core import flagging, register
-from saqc.lib.types import Int, OffsetStr, SaQCFields, ValidatePublicMembers
+from saqc.lib.types import (
+    EXTERNAL_FLAG,
+    Int,
+    OffsetStr,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -32,7 +38,7 @@ class ChangepointsMixin(ValidatePublicMembers):
         min_periods: (Int >= 0) | tuple[Int >= 0, Int >= 0],
         reduce_window: OffsetStr | None = None,
         reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """

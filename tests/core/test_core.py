@@ -644,3 +644,11 @@ def test_options():
     # reset to not disturb the other tests...
     saqc.options.history.aggregation = "last"
     assert saqc.options.history.aggregation == "last"
+
+
+@pytest.mark.parametrize(
+    "scheme, flag", [("float", 25), ("simple", "BAD"), ("positional", 1)]
+)
+def test_valid_flag_types(data, scheme, flag):
+    qc = SaQC(data, scheme=scheme)
+    qc.flagConstants(field="var1", flag=flag, thresh=0, window="2h")

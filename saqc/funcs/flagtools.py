@@ -25,6 +25,7 @@ from saqc.lib.tools import (
     toSequence,
 )
 from saqc.lib.types import (
+    EXTERNAL_FLAG,
     ArrayLike,
     Int,
     NewSaQCFields,
@@ -51,7 +52,9 @@ class FlagtoolsMixin(ValidatePublicMembers):
         return self
 
     @register(mask=[], demask=[], squeeze=["field"])
-    def forceFlags(self: SaQC, field: SaQCFields, flag: float = BAD, **kwargs) -> SaQC:
+    def forceFlags(
+        self: SaQC, field: SaQCFields, flag: EXTERNAL_FLAG = BAD, **kwargs
+    ) -> SaQC:
         """
         Assign specific flag to all periods.
 
@@ -81,7 +84,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
 
     @register(mask=[], demask=[], squeeze=["field"])
     def flagUnflagged(
-        self: SaQC, field: SaQCFields, flag: float = BAD, **kwargs
+        self: SaQC, field: SaQCFields, flag: EXTERNAL_FLAG = BAD, **kwargs
     ) -> SaQC:
         """
         Assign `flag` to all UNFLAGGED periods.
@@ -100,7 +103,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         field: SaQCFields,
         data: SaQCColumns | list | ArrayLike | pd.Series,
         override: bool = True,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -298,7 +301,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         field: SaQCFields,
         window: OffsetStr | (Int > 0),
         method: Literal["ffill", "bfill"] = "ffill",
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         dfilter: float = FILTER_ALL,
         **kwargs,
     ) -> SaQC:
@@ -423,7 +426,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         field: SaQCFields,
         group: Sequence[SaQC] | None = None,
         target: SaQCColumns | None = None,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -524,7 +527,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         field: SaQCFields,
         group: Sequence[SaQC] | None = None,
         target: SaQCColumns | None = None,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -587,7 +590,7 @@ def _groupOperation(
     func: Callable[[pd.Series, pd.Series], pd.Series],
     group: Sequence[SaQC] | None = None,
     target: SaQCColumns | None = None,
-    flag: float = BAD,
+    flag: EXTERNAL_FLAG = BAD,
     **kwargs,
 ) -> SaQC:
     """

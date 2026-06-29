@@ -7,11 +7,22 @@ SPDX-License-Identifier: GPL-3.0-or-later
 # Changelog
 
 ## Unreleased
-[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.9.0...main)
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.9.1...main)
 ### Added
 ### Changed
 ### Removed
 ### Fixed
+### Deprecated
+
+
+## [2.9.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.9.0) - 2026-06-29
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.9.0..v2.9.1)
+### Added
+- `SaQC.flagConstants`: Default value for parameter `thresh`
+### Changed
+### Removed
+### Fixed
+- Pydantic error when passing non-float values to `flag`
 ### Deprecated
 
 

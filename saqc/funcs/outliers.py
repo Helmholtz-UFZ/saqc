@@ -23,6 +23,7 @@ from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.rolling import windowRoller
 from saqc.lib.tools import isflagged, toSequence
 from saqc.lib.types import (
+    EXTERNAL_FLAG,
     Float,
     FreqStr,
     Int,
@@ -209,7 +210,7 @@ class OutliersMixin(ValidatePublicMembers):
         thresh: Literal["auto"] | (Float >= 1) = 1.5,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         p: Int > 0 = 1,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -318,7 +319,7 @@ class OutliersMixin(ValidatePublicMembers):
         fill_na: bool = True,
         slope_correct: bool = True,
         min_offset: (Float > 0) | None = None,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -492,7 +493,7 @@ class OutliersMixin(ValidatePublicMembers):
         field: SaQCFields,
         min: float | None = None,
         max: float | None = None,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -526,7 +527,7 @@ class OutliersMixin(ValidatePublicMembers):
         min_periods: Int >= 1 = 11,
         iter_start: Float[0, 1] = 0.5,
         alpha: Float[0, 1] = 0.05,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -606,7 +607,7 @@ class OutliersMixin(ValidatePublicMembers):
         tolerance: (Float >= 0) | None = None,
         thresh: (Float >= 0) | None = None,
         thresh_relative: tuple | float | None = None,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -826,7 +827,7 @@ class OutliersMixin(ValidatePublicMembers):
         min_periods: (Int > 0) | None = None,
         center: bool = True,
         axis: Int[0, 1] = 0,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -985,7 +986,7 @@ def _evalStrayLabels(
     reduction_thresh: Float >= 0 = 3.5,
     reduction_min_periods: Int >= 1 = 1,
     at_least_one: bool = True,
-    flag: float = BAD,
+    flag: EXTERNAL_FLAG = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """

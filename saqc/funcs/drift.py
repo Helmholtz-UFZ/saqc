@@ -25,6 +25,7 @@ from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import detectDeviants, filterKwargs, toSequence
 from saqc.lib.ts_operators import expDriftModel, linearDriftModel
 from saqc.lib.types import (
+    EXTERNAL_FLAG,
     LINKAGE_STRING,
     CurveFitter,
     Float,
@@ -65,7 +66,7 @@ class DriftMixin(ValidatePublicMembers):
             [np.ndarray | pd.Series, np.ndarray | pd.Series], np.ndarray
         ] = cityblock,
         method: LINKAGE_STRING = "single",
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -184,7 +185,7 @@ class DriftMixin(ValidatePublicMembers):
         metric: Callable[
             [np.ndarray | pd.Series, np.ndarray | pd.Series], np.ndarray
         ] = cityblock,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -590,7 +591,7 @@ class DriftMixin(ValidatePublicMembers):
             [np.ndarray | pd.Series, np.ndarray | pd.Series], float
         ] = lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
         frac: Float[0, 1] = 0.5,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -784,7 +785,7 @@ def _assignRegimeAnomaly(
     frac: float = 0.5,
     set_cluster: bool = True,
     set_flags: bool = False,
-    flag: float = BAD,
+    flag: EXTERNAL_FLAG = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """TODO: Docstring."""

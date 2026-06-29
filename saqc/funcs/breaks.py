@@ -27,6 +27,7 @@ from saqc.core import flagging, register
 from saqc.funcs.changepoints import _getChangePoints
 from saqc.lib.tools import isunflagged
 from saqc.lib.types import (
+    EXTERNAL_FLAG,
     Float,
     Int,
     OffsetStr,
@@ -44,7 +45,7 @@ class BreaksMixin(ValidatePublicMembers):
     def flagMissing(
         self: SaQC,
         field: SaQCFields,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         dfilter: float = FILTER_ALL,
         **kwargs,
     ) -> SaQC:
@@ -59,7 +60,7 @@ class BreaksMixin(ValidatePublicMembers):
     def flagNAN(
         self: SaQC,
         field: SaQCFields,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         dfilter: float = FILTER_ALL,
         **kwargs,
     ) -> SaQC:
@@ -87,7 +88,7 @@ class BreaksMixin(ValidatePublicMembers):
         field: SaQCFields,
         gap_window: OffsetStr,
         group_window: OffsetStr,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         **kwargs,
     ) -> SaQC:
         """
@@ -156,7 +157,7 @@ class BreaksMixin(ValidatePublicMembers):
         thresh: Float >= 0,
         window: OffsetStr,
         min_periods: Int >= 0 = 0,
-        flag: float = BAD,
+        flag: EXTERNAL_FLAG = BAD,
         dfilter: float = FILTER_ALL,
         **kwargs,
     ) -> SaQC:
