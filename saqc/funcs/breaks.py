@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 class BreaksMixin(ValidatePublicMembers):
 
-    @register(mask=[], demask=[], squeeze=["field"])
+    @register(mask=[], demask=[], squeeze=["field"], mode="flagging")
     def flagMissing(
         self: SaQC,
         field: SaQCFields,
@@ -56,7 +56,7 @@ class BreaksMixin(ValidatePublicMembers):
 
         return self.flagNAN(field, flag, dfilter, **kwargs)
 
-    @register(mask=[], demask=[], squeeze=["field"])
+    @register(mask=[], demask=[], squeeze=["field"], mode="flagging")
     def flagNAN(
         self: SaQC,
         field: SaQCFields,

@@ -181,22 +181,10 @@ def test_processTargetExistingFail(data_diff):
         cr.run()
 
 
-def test_flagTargetExistingFail(data_diff):
-    config = """
-    varname ; test
-    dummy   ; flagGeneric(field="var1", func=x < 1)
-    dummy   ; flagGeneric(field="var2", func=y > 1)
-    """
-
-    cr = _ConfigReader(data_diff).readString(config)
-    with pytest.raises(ValueError):
-        cr.run()
-
-
 def test_callableArgumentsUnary(data):
     window = 5
 
-    @register(mask=["field"], demask=["field"], squeeze=["field"])
+    @register(mask=["field"], demask=["field"], squeeze=["field"], mode="processing")
     def testFuncUnary(saqc, field, func, **kwargs):
         value = saqc._data[field].rolling(window=window).apply(func)
         saqc._data[field] = value
@@ -229,7 +217,7 @@ def test_callableArgumentsUnary(data):
 def test_callableArgumentsBinary(data):
     var1, var2 = data.columns[:2]
 
-    @register(mask=["field"], demask=["field"], squeeze=["field"])
+    @register(mask=["field"], demask=["field"], squeeze=["field"], mode="processing")
     def testFuncBinary(saqc, field, func, **kwargs):
         saqc._data[field] = func(data[var1], data[var2])
         return saqc

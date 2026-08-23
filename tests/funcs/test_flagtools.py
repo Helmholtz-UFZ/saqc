@@ -13,8 +13,9 @@ import pytest
 
 import saqc
 from saqc import BAD as B
+from saqc import FILTER_ALL
 from saqc import UNFLAGGED as U
-from saqc import SaQC
+from saqc import DictOfSeries, Flags, SaQC
 from saqc.funcs.flagtools import _groupOperation
 from saqc.lib.tools import toSequence
 from tests.fixtures import data
@@ -143,6 +144,44 @@ def test_orGroup(left, right, expected):
     assert pd.Series(expected).equals(result.flags["data"])
 
 
+def test_groupOperation_indexMismatch():
+    data = DictOfSeries(
+        source1=pd.Series(
+            [1.0, 2.0, 3.0, 4.0], index=pd.date_range("2000-01-01", periods=4, freq="D")
+        ),
+        source2=pd.Series(
+            [1.0, 2.0, 3.0], index=pd.date_range("2000-01-02", periods=3, freq="D")
+        ),
+        target=pd.Series(
+            [10.0, 20.0, 30.0],
+            index=pd.date_range("2000-01-03", periods=3, freq="D"),
+        ),
+    )
+    flags = Flags(
+        {
+            "source1": pd.Series(
+                [U, B, B, U],
+                index=pd.date_range("2000-01-01", periods=4, freq="D"),
+            ),
+            "source2": pd.Series(
+                [B, B, U],
+                index=pd.date_range("2000-01-02", periods=3, freq="D"),
+            ),
+            "target": pd.Series(
+                [U, U, U],
+                index=pd.date_range("2000-01-03", periods=3, freq="D"),
+            ),
+        }
+    )
+
+    result = SaQC(data, flags=flags).orGroup(
+        field=["source1", "source2"], target="target", dfilter=FILTER_ALL
+    )
+    assert result._flags["source1"].tolist() == [U, B, B, U]
+    assert result._flags["source2"].tolist() == [B, B, U]
+    assert result._flags["target"].tolist() == [B, U, U]
+
+
 @pytest.mark.parametrize(
     "field, target, expected, copy",
     [
@@ -219,6 +258,34 @@ def test_transferFlags():
     assert qc3._history["a"].hist.iloc[:, 0].equals(qc3._history["x"].hist.squeeze())
     assert qc3._history["a"].hist.iloc[:, 1].equals(qc3._history["y"].hist.squeeze())
     assert qc3._history["a"].hist.iloc[:, 2].equals(qc3._history["z"].hist.squeeze())
+
+
+@pytest.mark.xfail()
+def test_transferFlags_innerIndexMismatch():
+    # TODO: Implement handling of mismatching indices between source and target
+    data = DictOfSeries(
+        source=pd.Series(
+            [1.0, 2.0, 3.0, 4.0], index=pd.date_range("2000-01-01", periods=4, freq="D")
+        ),
+        target=pd.Series(
+            [10.0, 20.0, 30.0],
+            index=pd.date_range("2000-01-03", periods=3, freq="D"),
+        ),
+    )
+    flags = Flags(
+        {
+            "source": pd.Series(
+                [U, B, B, U],
+                index=pd.date_range("2000-01-01", periods=4, freq="D"),
+            ),
+            "target": pd.Series(
+                [U, U, U],
+                index=pd.date_range("2000-01-03", periods=3, freq="D"),
+            ),
+        }
+    )
+    qc = SaQC(data=data, flags=flags)
+    qc.transferFlags(field="source", target="target")
 
 
 @pytest.mark.parametrize(

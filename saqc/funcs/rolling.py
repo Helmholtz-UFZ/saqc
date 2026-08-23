@@ -31,7 +31,12 @@ if TYPE_CHECKING:
 
 class RollingMixin(ValidatePublicMembers):
     @register(
-        mask=["field"], demask=[], squeeze=[], multivariate=True, handles_target=True
+        mask=["field"],
+        demask=[],
+        squeeze=[],
+        mode="processing",
+        multivariate=True,
+        handles_target=True,
     )
     def rolling(
         self: SaQC,
@@ -112,10 +117,11 @@ class RollingMixin(ValidatePublicMembers):
 
         warnings.warn(
             """
-            The method rolling is deprecated and will be removed in SaQC 2.10.
+            The method rolling is deprecated and will be removed in SaQC 3.0.
             Please use processGeneric instead.
             """,
-            DeprecationWarning,
+            FutureWarning,
+            stacklevel=4,
         )
 
         # HINT: checking in  _roll

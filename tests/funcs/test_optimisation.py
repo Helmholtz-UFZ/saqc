@@ -82,7 +82,7 @@ def addConstants(
     return dat, flags
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_single_target_outlier():
     data, outliers = addOutliers(DATA)
     qc = saqc.SaQC(data)
@@ -119,7 +119,7 @@ def test_single_target_outlier():
     # assert np.all(outliers.values == flagged.values)
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_single_target_noise():
     data, flags = addNoise(DATA, noise_len=(30, 50), noise_num=3, noise_amp=1)
     qc = saqc.SaQC(data)
@@ -138,7 +138,7 @@ def test_single_target_noise():
     # assert np.sum(flags.values == flagged.values) > DATLEN - 20
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_single_target_constants():
     data, flags = addConstants(DATA, const_num=2, const_len=(10, 20))
     qc = saqc.SaQC(data)
@@ -157,7 +157,7 @@ def test_single_target_constants():
     # assert np.all(flags.values == flagged.values)
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_multi_target():
     data, flags_const = addConstants(
         DATA, const_num=2, const_len=(10, 20), seed=SEED + 1

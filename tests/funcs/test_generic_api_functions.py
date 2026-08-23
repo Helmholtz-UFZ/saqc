@@ -194,6 +194,25 @@ def test_flagGeneric_label():
     assert list((qc.flags["data2"] > 0).values) == [False, False, True, False, False]
 
 
+def test_flagGeneric_innerJoinIndexMismatch():
+    data = DictOfSeries(
+        source=pd.Series(
+            [1.0, 2.0, 3.0], index=pd.date_range("2000", periods=3, freq="D")
+        ),
+        target=pd.Series(
+            [10.0, 20.0, 30.0],
+            index=pd.date_range("2000-01-02", periods=3, freq="D"),
+        ),
+    )
+
+    qc = SaQC(data).flagGeneric(
+        field="source", target="target", func=lambda x: x < 3, flag=BAD
+    )
+
+    assert qc._flags["source"].tolist() == [UNFLAGGED, UNFLAGGED, UNFLAGGED]
+    assert qc._flags["target"].tolist() == [BAD, UNFLAGGED, UNFLAGGED]
+
+
 @pytest.mark.parametrize(
     "kwargs, got, expected",
     [

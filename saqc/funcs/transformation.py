@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
 
 class TransformationMixin(ValidatePublicMembers):
-    @register(mask=["field"], demask=[], squeeze=[])
+    @register(mask=["field"], demask=[], squeeze=[], mode="processing")
     def transform(
         self: SaQC,
         field: SaQCFields,
@@ -64,7 +64,8 @@ class TransformationMixin(ValidatePublicMembers):
             The method transform is deprecated and will be removed in SaQC 2.10.
             Please use processGeneric instead.
             """,
-            DeprecationWarning,
+            FutureWarning,
+            stacklevel=4,
         )
 
         if isinstance(func, str):

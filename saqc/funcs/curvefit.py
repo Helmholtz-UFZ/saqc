@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 
 
 class CurvefitMixin(ValidatePublicMembers):
-    @register(mask=["field"], demask=[], squeeze=[])
+    @register(mask=["field"], demask=[], squeeze=[], mode="processing")
     def fitPolynomial(
         self: SaQC,
         field: SaQCFields,
@@ -93,7 +93,7 @@ class CurvefitMixin(ValidatePublicMembers):
         )
         return self
 
-    @register(mask=["field"], demask=[], squeeze=[])
+    @register(mask=["field"], demask=[], squeeze=[], mode="processing")
     def fitLowpassFilter(
         self: SaQC,
         field: SaQCFields,

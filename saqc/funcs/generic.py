@@ -147,6 +147,7 @@ class GenericMixin(ValidatePublicMembers):
         mask=["field"],
         demask=["field"],
         squeeze=["field", "target"],
+        mode="processing",
         multivariate=True,
         handles_target=True,
     )
@@ -226,6 +227,7 @@ class GenericMixin(ValidatePublicMembers):
         mask=["field"],
         demask=["field"],
         squeeze=["field", "target"],
+        mode="flagging",
         multivariate=True,
         handles_target=True,
     )
@@ -307,6 +309,10 @@ class GenericMixin(ValidatePublicMembers):
             # make sure the column exists
             if col not in self._flags:
                 self._flags[col] = pd.Series(np.nan, index=mask.index)
+            elif not self._flags[col].index.equals(mask.index):
+                mask = mask.reindex(self._flags[col].index, fill_value=False).astype(
+                    bool
+                )
 
             # respect existing flags
             mask = isunflagged(self._flags[col], thresh=dfilter) & mask
@@ -314,13 +320,6 @@ class GenericMixin(ValidatePublicMembers):
             # dummy column to ensure consistency between flags and data
             if col not in self._data:
                 self._data[col] = pd.Series(np.nan, index=mask.index, dtype=float)
-
-            # we need equal indices to work on
-            if not self._flags[col].index.equals(mask.index):
-                raise ValueError(
-                    f"cannot assign function result to the existing variable {repr(col)} "
-                    "because of incompatible indices, please choose another 'target'"
-                )
 
             self._flags[mask, col] = flag
 

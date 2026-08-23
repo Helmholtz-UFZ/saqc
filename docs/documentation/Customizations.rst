@@ -94,6 +94,9 @@ Use :py:func:`@flagging` for simple univariate flagging tasks without the need f
 Use :py:func:`@register` when your algorithm needs to handle multiple columns simultaneously (``multivariate=True``)
 and or you need explicit control over masking, demasking, and squeezing of data and flags.
 :py:func:`register` is especially for complex algorithms that involve interactions between different columns.
+Set ``mode="flagging"`` for algorithms whose visible result is limited to flags. Temporary data columns
+that are removed before the function returns still count as flagging. Set ``mode="processing"`` for
+algorithms that visibly change data values, indices, or columns.
 
 
 .. code-block:: python
@@ -105,6 +108,7 @@ and or you need explicit control over masking, demasking, and squeezing of data 
        mask=["field"], # Parameter(s) of the decorated functions giving the names of columns in SaQC._data to mask before the call
        demask=["field"], # Parameter(s) of the decorated functions giving the names of columns in SaQC._data to unmask after the call
        squeeze=["field"], # Parameter(s) of the decorated functions giving the names of columns in SaQC._flags to squeeze into a single flags column after the call
+       mode="flagging", # Use "processing" instead if the function visibly changes data
        multivariate=True,  # Set to True to handle multiple columns
        handles_target=False,
    )
@@ -223,5 +227,3 @@ an illustrative example:
 
         def __init__(self):
             super().__init__(forward=self._FORWARD, backward=self._BACKWARD)
-
-

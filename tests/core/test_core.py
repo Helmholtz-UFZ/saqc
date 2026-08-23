@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import saqc
 from saqc import BAD, FILTER_ALL, FILTER_NONE, UNFLAGGED, SaQC
 from saqc.core import DictOfSeries, Flags, flagging, processing, register
 from saqc.core.flags import initFlagsLike
@@ -53,7 +54,7 @@ def test_dtypes(data, flags):
     Test if the categorical dtype is preserved through the core functionality
     """
 
-    @register(mask=["field"], demask=["field"], squeeze=["field"])
+    @register(mask=["field"], demask=["field"], squeeze=["field"], mode="flagging")
     def flagAll(saqc, field, **kwargs):
         saqc._flags[:, field] = BAD
         return saqc
@@ -126,13 +127,19 @@ def test_copy(data):
 
 def test_sourceTargetCopy():
     """
-    test implicit copies
+    test implicit copies, if target is not present
     """
     data = initData(1)
     var1 = data.columns[0]
     target = "new"
 
-    @register(mask=["field"], demask=["field"], squeeze=["field"], handles_target=False)
+    @register(
+        mask=["field"],
+        demask=["field"],
+        squeeze=["field"],
+        mode="flagging",
+        handles_target=False,
+    )
     def flagTarget(saqc, field, **kwargs):
         assert "target" not in kwargs
         return saqc
@@ -152,7 +159,13 @@ def test_sourceTargetNoCopy():
     var1 = data.columns[0]
     target = "new"
 
-    @register(mask=["field"], demask=["field"], squeeze=["field"], handles_target=True)
+    @register(
+        mask=["field"],
+        demask=["field"],
+        squeeze=["field"],
+        mode="flagging",
+        handles_target=True,
+    )
     def flagField(saqc, field, **kwargs):
         assert "target" in kwargs
         assert "target" not in saqc._data
@@ -172,6 +185,7 @@ def test_sourceTargetMultivariate():
         mask=["field"],
         demask=["field"],
         squeeze=["field"],
+        mode="flagging",
         handles_target=True,
         multivariate=True,
     )
@@ -195,6 +209,7 @@ def test_sourceTargetMulti():
         mask=["field"],
         demask=["field"],
         squeeze=["field"],
+        mode="flagging",
         handles_target=True,
         multivariate=True,
     )
@@ -208,6 +223,163 @@ def test_sourceTargetMulti():
         return saqc
 
     SaQC(data, flags).flagMulti(field=fields, target=targets)
+
+
+def test_fieldTargetOverwrite():
+    """
+    test the now deprecated overwrite target workflow
+    """
+    data = pd.DataFrame(
+        {
+            "x": [1.0, 2.0],
+            "a": [10.0, 20.0],
+        },
+        index=pd.date_range("2000", periods=2, freq="D"),
+    )
+
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=["field"],
+        mode="flagging",
+        handles_target=False,
+    )
+    def flagTarget(saqc, field, **kwargs):
+        assert field == "a"
+        return saqc
+
+    try:
+        with pytest.warns(FutureWarning):
+            saqc.options.field_target.existing_target = "overwrite"
+
+        qc = SaQC(
+            data, flags=Flags({"x": pd.Series([0, 127.0], index=data["x"].index)})
+        ).flagTarget(field="x", target="a")
+    finally:
+        saqc.options.field_target.existing_target = "append"
+
+    pd.testing.assert_series_equal(qc.data["x"], data["x"])
+    pd.testing.assert_series_equal(qc.data["a"], data["x"], check_names=False)
+    pd.testing.assert_series_equal(qc.flags["x"], qc.flags["a"], check_names=False)
+
+
+def test_fieldTargetMultivariateOverwriteExistingTargets():
+    data = pd.DataFrame(
+        {
+            "x": [1.0, 2.0],
+            "y": [3.0, 4.0],
+            "a": [10.0, 20.0],
+            "b": [30.0, 40.0],
+        },
+        index=pd.date_range("2000", periods=2, freq="D"),
+    )
+
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=["field"],
+        mode="flagging",
+        multivariate=True,
+        handles_target=False,
+    )
+    def flagMulti(saqc, field, **kwargs):
+        assert field == ["a", "b"]
+        for col in field:
+            saqc._data[col] = saqc._data[col] + 100
+            saqc._flags[:, col] = BAD
+        return saqc
+
+    try:
+        with pytest.warns(FutureWarning):
+            saqc.options.field_target.existing_target = "overwrite"
+
+        qc = SaQC(data).flagMulti(field=["x", "y"], target=["a", "b"])
+    finally:
+        saqc.options.field_target.existing_target = "append"
+
+    pd.testing.assert_series_equal(qc.data["x"], data["x"])
+    pd.testing.assert_series_equal(qc.data["y"], data["y"])
+    pd.testing.assert_series_equal(qc.data["a"], data["x"] + 100, check_names=False)
+    pd.testing.assert_series_equal(qc.data["b"], data["y"] + 100, check_names=False)
+    assert (qc._flags["x"] == UNFLAGGED).all()
+    assert (qc._flags["y"] == UNFLAGGED).all()
+    assert (qc._flags["a"] == BAD).all()
+    assert (qc._flags["b"] == BAD).all()
+
+
+def test_fieldTargetMultivariateAppendExistingTargets():
+    data = pd.DataFrame(
+        {
+            "x": [1.0, 2.0],
+            "y": [3.0, 4.0],
+            "a": [10.0, 20.0],
+            "b": [30.0, 40.0],
+        },
+        index=pd.date_range("2000", periods=2, freq="D"),
+    )
+
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=["field"],
+        mode="flagging",
+        multivariate=True,
+        handles_target=False,
+    )
+    def flagMulti(saqc, field, **kwargs):
+        assert field == ["a", "b"]
+        for col in field:
+            saqc._data[col] = saqc._data[col] + 100
+            saqc._flags[:, col] = BAD
+        return saqc
+
+    qc = SaQC(data).flagMulti(field=["x", "y"], target=["a", "b"])
+
+    pd.testing.assert_series_equal(qc.data["x"], data["x"])
+    pd.testing.assert_series_equal(qc.data["y"], data["y"])
+    pd.testing.assert_series_equal(qc.data["a"], data["a"])
+    pd.testing.assert_series_equal(qc.data["b"], data["b"])
+    assert (qc._flags["x"] == UNFLAGGED).all()
+    assert (qc._flags["y"] == UNFLAGGED).all()
+    assert (qc._flags["a"] == BAD).all()
+    assert (qc._flags["b"] == BAD).all()
+
+
+def test_fieldTargetMultivariateAppendMixedTargets():
+    data = pd.DataFrame(
+        {
+            "x": [1.0, 2.0],
+            "y": [3.0, 4.0],
+            "a": [10.0, 20.0],
+        },
+        index=pd.date_range("2000", periods=2, freq="D"),
+    )
+
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=["field"],
+        mode="flagging",
+        multivariate=True,
+        handles_target=False,
+    )
+    def flagMulti(saqc, field, **kwargs):
+        assert field == ["a", "b"]
+        for col in field:
+            saqc._data[col] = saqc._data[col] + 100
+            saqc._flags[:, col] = BAD
+        return saqc
+
+    qc = SaQC(data).flagMulti(field=["x", "y"], target=["a", "b"])
+
+    pd.testing.assert_series_equal(qc.data["x"], data["x"])
+    pd.testing.assert_series_equal(qc.data["y"], data["y"])
+    pd.testing.assert_series_equal(qc.data["a"], data["a"])
+    pd.testing.assert_series_equal(qc.data["b"], data["y"] + 100, check_names=False)
+    assert (qc._flags["x"] == UNFLAGGED).all()
+    assert (qc._flags["y"] == UNFLAGGED).all()
+    assert (qc._flags["a"] == BAD).all()
+    assert (qc._flags["b"] == BAD).all()
 
 
 def test_unknown_attribute():
@@ -269,19 +441,47 @@ def test_fieldsTargetsExpansionFail(field, target):
     # check that the field/target handling works as expected for the
     # different function types
 
-    @register(mask=[], demask=[], squeeze=[], multivariate=False, handles_target=False)
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=[],
+        mode="flagging",
+        multivariate=False,
+        handles_target=False,
+    )
     def foo(saqc, field, **kwargs):
         return saqc
 
-    @register(mask=[], demask=[], squeeze=[], multivariate=False, handles_target=True)
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=[],
+        mode="flagging",
+        multivariate=False,
+        handles_target=True,
+    )
     def bar(saqc, field, target, **kwargs):
         return saqc
 
-    @register(mask=[], demask=[], squeeze=[], multivariate=True, handles_target=False)
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=[],
+        mode="flagging",
+        multivariate=True,
+        handles_target=False,
+    )
     def baz(saqc, field, **kwargs):
         return saqc
 
-    @register(mask=[], demask=[], squeeze=[], multivariate=False, handles_target=True)
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=[],
+        mode="flagging",
+        multivariate=False,
+        handles_target=True,
+    )
     def fooBar(saqc, field, **kwargs):
         return saqc
 
@@ -308,19 +508,47 @@ def test_fieldsTargetsExpansion(field, target):
     # check that the field/target handling works as expected for the
     # different function types
 
-    @register(mask=[], demask=[], squeeze=[], multivariate=False, handles_target=False)
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=[],
+        mode="flagging",
+        multivariate=False,
+        handles_target=False,
+    )
     def foo(saqc, field, **kwargs):
         return saqc
 
-    @register(mask=[], demask=[], squeeze=[], multivariate=False, handles_target=True)
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=[],
+        mode="flagging",
+        multivariate=False,
+        handles_target=True,
+    )
     def bar(saqc, field, target, **kwargs):
         return saqc
 
-    @register(mask=[], demask=[], squeeze=[], multivariate=True, handles_target=False)
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=[],
+        mode="flagging",
+        multivariate=True,
+        handles_target=False,
+    )
     def baz(saqc, field, **kwargs):
         return saqc
 
-    @register(mask=[], demask=[], squeeze=[], multivariate=False, handles_target=True)
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=[],
+        mode="flagging",
+        multivariate=False,
+        handles_target=True,
+    )
     def fooBar(saqc, field, **kwargs):
         return saqc
 
@@ -342,11 +570,25 @@ def test_fieldsTargetsExpansion(field, target):
     ],
 )
 def test_fieldsTargetsExpansionMultivariate(field, target):
-    @register(mask=[], demask=[], squeeze=[], multivariate=True, handles_target=True)
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=[],
+        mode="flagging",
+        multivariate=True,
+        handles_target=True,
+    )
     def foo(saqc, field, target, **kwargs):
         return saqc
 
-    @register(mask=[], demask=[], squeeze=[], multivariate=True, handles_target=True)
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=[],
+        mode="flagging",
+        multivariate=True,
+        handles_target=True,
+    )
     def bar(saqc, field, **kwargs):
         return saqc
 
@@ -629,15 +871,13 @@ def test_options():
     # NOTE: test can be removed after the options are all consolidated
     import saqc
 
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(FutureWarning):
         saqc.core.history.AGGREGATIONS
 
-    with pytest.warns(
-        DeprecationWarning, match=r"saqc\.options\.history\.aggregations"
-    ):
+    with pytest.warns(FutureWarning, match=r"saqc\.options\.history\.aggregations"):
         assert saqc.core.history.AGGRGEGATIONS is saqc.options.history.aggregations
 
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(FutureWarning):
         saqc.core.history.AGGREGATION = "test"
         assert saqc.options.history.aggregation == "test"
 

@@ -200,6 +200,7 @@ class OutliersMixin(ValidatePublicMembers):
         mask=["field"],
         demask=["field"],
         squeeze=["field"],
+        mode="flagging",
         multivariate=True,
         handles_target=False,
     )
@@ -814,6 +815,7 @@ class OutliersMixin(ValidatePublicMembers):
         mask=["field"],
         demask=["field"],
         squeeze=["field"],
+        mode="flagging",
         multivariate=True,
         docstring={"field": DOC_TEMPLATES["field"]},
     )

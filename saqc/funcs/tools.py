@@ -46,7 +46,7 @@ deprecateOptions(
 
 
 class ToolsMixin(ValidatePublicMembers):
-    @register(mask=[], demask=[], squeeze=[], multivariate=True)
+    @register(mask=[], demask=[], squeeze=[], mode="flagging", multivariate=True)
     def flagByClick(
         self: SaQC,
         field: SaQCFields,
@@ -179,6 +179,7 @@ class ToolsMixin(ValidatePublicMembers):
         mask=[],
         demask=[],
         squeeze=[],
+        mode="processing",
         handles_target=True,
         docstring={"target": DOC_TEMPLATES["target"]},
     )
@@ -239,7 +240,7 @@ class ToolsMixin(ValidatePublicMembers):
         del self._flags[field]
         return self
 
-    @register(mask=[], demask=[], squeeze=["field"])
+    @register(mask=[], demask=[], squeeze=["field"], mode="processing")
     def selectTime(
         self: SaQC,
         field: SaQCFields,
@@ -361,7 +362,8 @@ class ToolsMixin(ValidatePublicMembers):
             The method selectTime is deprecated and will be removed in SaQC 2.10.
             Please use the global method parameters start_date ande end_date instead.
             """,
-            DeprecationWarning,
+            FutureWarning,
+            stacklevel=4,
         )
 
         datcol_idx = self._data[field].index
@@ -385,6 +387,7 @@ class ToolsMixin(ValidatePublicMembers):
         mask=[],
         demask=[],
         squeeze=[],
+        mode="flagging",
         multivariate=True,
     )
     def plot(

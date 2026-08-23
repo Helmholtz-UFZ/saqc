@@ -78,6 +78,7 @@ class InterpolationMixin(ValidatePublicMembers):
         mask=["field"],
         demask=["field"],
         squeeze=[],  # func handles history by itself
+        mode="processing",
     )
     def interpolateByRolling(
         self: SaQC,
@@ -159,7 +160,9 @@ class InterpolationMixin(ValidatePublicMembers):
 
         return self
 
-    @register(mask=["field"], demask=[], squeeze=[], multivariate=True)
+    @register(
+        mask=["field"], demask=[], squeeze=[], mode="processing", multivariate=True
+    )
     def align(
         self: SaQC,
         field: SaQCFields,

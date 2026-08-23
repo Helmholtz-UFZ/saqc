@@ -16,7 +16,7 @@ import pandas as pd
 from pymoo.core.result import Result
 from pymoo.optimize import minimize
 
-from saqc.core import flagging, processing, register
+from saqc.core import flagging, register
 from saqc.lib.problems import make_problem
 from saqc.lib.tools import getHist, getHistByKwarg, getMeta
 from saqc.options import deprecateOptions, optimization
@@ -33,7 +33,7 @@ deprecateOptions(
 
 
 class OptiSaqcMixin:
-    @register(mask=[], demask=[], squeeze=[], handles_target=True)
+    @register(mask=[], demask=[], squeeze=[], mode="processing", handles_target=True)
     def supervise(
         self,
         field: str,
@@ -158,7 +158,7 @@ class OptiSaqcMixin:
                     self = self.flagDummy(target, **i_kwargs)
         return self
 
-    @register(mask=[], demask=[], squeeze=[])
+    @register(mask=[], demask=[], squeeze=[], mode="flagging")
     def calibratePipeline(
         self: "SaQC",
         field: str,
@@ -466,7 +466,7 @@ class OptiSaqcMixin:
                 return self
 
             setattr(pipeFunc, "__name__", name)
-            processing()(pipeFunc)
+            flagging()(pipeFunc)
         if field != sv_field:
             self = self.dropField(sv_field)
         return self
@@ -522,7 +522,7 @@ class OptiSaqcMixin:
         # add function as method to saqc class?
         if name is not None:
             setattr(configFunc, "__name__", name)
-            processing()(configFunc)
+            flagging()(configFunc)
             return self
         # or just execute it and obtain results for field
         else:
