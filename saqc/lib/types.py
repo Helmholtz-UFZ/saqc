@@ -272,7 +272,7 @@ class SaQCColumns(RootModel[Union[str, list[str]]]):
             and ("self" in info.context)
             and hasattr(info.context["self"], "columns")
         ):
-            checkFields(v, info.context["self"].columns, is_regex=False)
+            checkFields(v, info.context["self"].columns)
         else:
             raise ValueError(_valContextError("SaQCColumns", info, info.context))
         return v
@@ -304,8 +304,8 @@ class SaQCFields(RootModel[Union[str, list[str]]]):
     """
     Existing variable name(s) or regular expression matching existing variable name(s).
 
-    Type that can be an annotation to SaQC methods parameters and is checked against argument 'self' in those methods.
-    This type also checks for regex kwarg - for plain selector type, use `SaQCColumns` type.
+    Type that can be an annotation to SaQC methods parameters and is checked against argument 'self'
+    in those methods. For a plain selector type, use `SaQCColumns` type.
     Consistency is only ensured if `self` is validated before `SaQCField` type.
     """
 
@@ -317,8 +317,7 @@ class SaQCFields(RootModel[Union[str, list[str]]]):
             and ("self" in info.context)
             and hasattr(info.context["self"], "columns")
         ):
-            is_regex = info.context.get("kwargs", {}).get("regex", False)
-            checkFields(v, info.context["self"].columns, is_regex=is_regex)
+            checkFields(v, info.context["self"].columns)
         else:
             raise ValueError(_valContextError("SaQCFields", info, info.context))
         return v

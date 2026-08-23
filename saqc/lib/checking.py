@@ -84,23 +84,18 @@ def checkSaQC(o):
         ValueError(f"Not an SaQC object. Got {o}.")
 
 
-def checkQCMembers(field, cols, is_regex):
+def checkQCMembers(field, cols):
     toSeq = lambda x: [x] if isinstance(x, str) else x
-    field = toSeq(field)
-    if not is_regex:
-        field_exists = [_v in cols for _v in toSeq(field)]
-    else:
-        field_exists = [sum([re.match(field[0], _v) is not None for _v in cols]) > 0]
-    return field_exists
+    return [_v in cols for _v in toSeq(field)]
 
 
-def checkFields(field, cols, is_regex=False):
-    field_exists = checkQCMembers(field, cols, is_regex)
+def checkFields(field, cols):
+    field_exists = checkQCMembers(field, cols)
     if sum(field_exists) < len(field_exists):
         raise ValueError(f"Not all passed values are in {cols}. Got: {field}")
 
 
 def checkNewFields(field, cols):
-    field_exists = checkQCMembers(field, cols, False)
+    field_exists = checkQCMembers(field, cols)
     if sum(field_exists) > 0:
         raise ValueError(f"Some Values already exist in {cols}. Got: {field}")

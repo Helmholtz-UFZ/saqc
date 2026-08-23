@@ -297,7 +297,7 @@ To see all the results obtained so far, plotted in one figure window, we make us
 
 .. doctest:: exampleOD
 
-   >>> qc.plot(".", regex=True) # doctest: +SKIP
+   >>> qc.plot(qc.columns) # doctest: +SKIP
 
 .. plot::
    :context:
@@ -305,7 +305,7 @@ To see all the results obtained so far, plotted in one figure window, we make us
    :width: 80 %
    :class: center
 
-   qc.plot(".", regex=True)
+   qc.plot(qc.columns)
 
 
 Residuals and Scores

@@ -30,36 +30,6 @@ def getTestedVariables(flags: Flags, test: str):
     return out
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
-def test_variableRegex(data):
-    header = f"varname;test"
-    function = "flagDummy"
-    tests = [
-        ("'.*'", data.columns),
-        ("'var(1|2)'", [c for c in data.columns if c[-1] in ("1", "2")]),
-        ("'var[12]'", [c for c in data.columns if c[-1] in ("1", "2")]),
-        ('".*3"', [c for c in data.columns if c[-1] == "3"]),
-    ]
-
-    for regex, expected in tests:
-        cr = _ConfigReader(data)
-        cr.readString(header + "\n" + f"{regex} ; {function}()")
-        saqc = cr.run()
-        result = getTestedVariables(saqc._flags, function)
-        assert np.all(result == expected)
-
-    tests = [
-        ("var[12]", []),  # not quoted -> not a regex
-    ]
-    for regex, expected in tests:
-        cr = _ConfigReader(data=data)
-        cr.readString(header + "\n" + f"{regex} ; {function}()")
-        with pytest.warns(RuntimeWarning):
-            saqc = cr.run()
-        result = getTestedVariables(saqc._flags, function)
-        assert np.all(result == expected)
-
-
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_inlineComments(data):
     """
