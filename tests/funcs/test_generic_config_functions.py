@@ -145,7 +145,7 @@ def test_variableAssignments(data):
 def test_processExistingTarget(data):
     config = """
     varname ; test
-    var2   ; flagMissing()
+    var2   ; flagNAN()
     var2   ; processGeneric(func=y - 1)
     """
 

@@ -11,9 +11,9 @@ sac254_raw              ; align(freq='15min')
 # Drift Correcture
 sac254_raw              ; correctDrift(target='sac254_corr', maintenance_field='maint', model='exponential')
 # Multivariate Flagging Procedure
-level_z                 ; transform(field=['level_raw'], func=zScore(x), freq='20D')
-water_z                 ; transform(field=['water_temp_raw'], func=zScore(x), freq='20D')
-sac_z                   ; transform(field=['sac254_raw'], func=zScore(x), freq='20D')
+level_z                 ; processGeneric(field=['level_raw'], target='level_z', func=zScore(x))
+water_z                 ; processGeneric(field=['water_temp_raw'], target='water_z', func=zScore(x))
+sac_z                   ; processGeneric(field=['sac254_raw'], target='sac_z', func=zScore(x))
 kNN_scores              ; assignKNNScore(field=['level_z', 'water_z', 'sac_z'], freq='20D')
 kNN_scores              ; flagByStray(freq='20D')
 level_raw               ; transferFlags(field=['kNN_scores'], label='STRAY')

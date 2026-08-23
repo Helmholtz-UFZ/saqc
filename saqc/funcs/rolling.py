@@ -65,6 +65,9 @@ class RollingMixin(ValidatePublicMembers):
         """
         Rolling window function application.
 
+        .. deprecated:: 2.8.0
+           Deprecated Function. Please use :py:meth:`~saqc.SaQC.processGeneric` instead.
+
         Evaluate a function at all shifts of a fixed-size window ("rolling window application").
 
         The resulting values are assigned the worst flag present in the window from which

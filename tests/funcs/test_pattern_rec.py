@@ -87,26 +87,3 @@ def test_flagPlateau_long():
         na_slice = slice(anomalies[i - 1][1], anomalies[i][0])
         assert f.iloc[a_slice].all()
         assert not (f.iloc[na_slice].any())
-
-
-@pytest.mark.filterwarnings("ignore::FutureWarning")
-@pytest.mark.parametrize("plot", [True, False])
-@pytest.mark.parametrize("normalize", [True, False])
-def test_flagPattern_dtw(plot, normalize):
-    data = pd.Series(0, index=pd.date_range(start="2000", end="2001", freq="1D"))
-    data.iloc[10:18] = [0, 5, 6, 7, 6, 8, 5, 0]
-    pattern = data.iloc[10:18]
-
-    data = DictOfSeries(data=data, pattern_data=pattern)
-    flags = initFlagsLike(data, name="data")
-    qc = SaQC(data, flags).flagPatternByDTW(
-        "data",
-        reference="pattern_data",
-        plot=plot,
-        normalize=normalize,
-        flag=BAD,
-    )
-
-    assert all(qc.flags["data"].iloc[10:18] == BAD)
-    assert all(qc.flags["data"].iloc[:9] == UNFLAGGED)
-    assert all(qc.flags["data"].iloc[18:] == UNFLAGGED)

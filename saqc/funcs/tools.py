@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import pickle
 import tkinter as tk
-import warnings
 from typing import TYPE_CHECKING, Literal
 
 import matplotlib as mpl
@@ -22,7 +21,6 @@ from saqc.core import processing, register
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.plotting import makeFig
 from saqc.lib.selectionGUI import MplScroller, SelectionOverlay
-from saqc.lib.tools import periodicMask
 from saqc.lib.types import (
     DateIndexStr,
     DateStringSlice,
@@ -31,7 +29,6 @@ from saqc.lib.types import (
     PathStr,
     SaQCColumns,
     SaQCFields,
-    TimestampStr,
     ValidatePublicMembers,
 )
 
@@ -238,149 +235,6 @@ class ToolsMixin(ValidatePublicMembers):
         self._flags.history[new_name] = self._flags.history[field]
         del self._data[field]
         del self._flags[field]
-        return self
-
-    @register(mask=[], demask=[], squeeze=["field"], mode="processing")
-    def selectTime(
-        self: SaQC,
-        field: SaQCFields,
-        mode: Literal["periodic", "selection_field"],
-        selection_field: SaQCColumns | None = None,
-        start: TimestampStr | None = None,
-        end: TimestampStr | None = None,
-        closed: bool = True,
-        **kwargs,
-    ) -> SaQC:
-        """
-        Apply a mask.
-
-        Due to some inner saqc mechanics, it is not straight forwardly possible to exclude
-        values or datachunks from flagging routines. This function replaces flags with UNFLAGGED
-        value, wherever values are to get masked. Furthermore, the masked values get replaced by
-        np.nan, so that they dont effect calculations.
-
-        Here comes a recipe on how to apply a flagging function only on a masked chunk of the variable field:
-
-        1. dublicate "field" in the input data (`copyField`)
-        2. mask the dublicated data (this, `selectTime`)
-        3. apply the tests you only want to be applied onto the masked data chunks (a saqc function)
-        4. project the flags, calculated on the dublicated and masked data onto the original field data (`concateFlags` or `flagGeneric`)
-        5. drop the dublicated data (`dropField`)
-
-        To see an implemented example, checkout flagSeasonalRange in the saqc.functions module
-
-        Parameters
-        ----------
-        mode :
-            The masking mode.
-
-            - "periodic": parameters "period_start", "end" are evaluated to generate a periodical mask
-            - "mask_var": data[mask_var] is expected to be a boolean valued timeseries and is used as mask.
-
-        selection_field :
-            Variable holding the mask.
-
-            Only effective if mode == "mask_var"
-            Fieldname of the column, holding the data that is to be used as mask. (must be boolean series)
-            Neither the series` length nor its labels have to match data[field]`s index and length. An inner join of the
-            indices will be calculated and values get masked where the values of the inner join are ``True``.
-
-        start :
-            Season start.
-
-            Only effective if mode == "seasonal"
-            String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
-            Has to be of same length as `end` parameter.
-            See examples section below for some examples.
-
-        end :
-            Season end.
-
-            Only effective if mode == "periodic"
-            String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
-            Has to be of same length as `end` parameter.
-            See examples section below for some examples.
-
-        closed :
-            Closure at mask alternation.
-
-            Wheather or not to include the mask defining bounds to the mask.
-
-        Examples
-        --------
-        The `period_start` and `end` parameters provide a conveniant way to generate seasonal / date-periodic masks.
-        They have to be strings of the forms:
-
-        * "mm-ddTHH:MM:SS"
-        * "ddTHH:MM:SS"
-        * "HH:MM:SS"
-        * "MM:SS" or "SS"
-
-        (mm=month, dd=day, HH=hour, MM=minute, SS=second)
-        Single digit specifications have to be given with leading zeros.
-        `period_start` and `seas   on_end` strings have to be of same length (refer to the same periodicity)
-        The highest date unit gives the period.
-        For example:
-
-        .. doctest::
-
-           >>> start = "01T15:00:00"
-           >>> end = "13T17:30:00"
-
-        Will result in all values sampled between 15:00 at the first and  17:30 at the 13th of every month get masked
-
-        .. doctest::
-
-           >>> start = "01:00"
-           >>> end = "04:00"
-
-        All the values between the first and 4th minute of every hour get masked.
-
-        .. doctest::
-
-           >>> start = "01-01T00:00:00"
-           >>> end = "01-03T00:00:00"
-
-        Mask january and february of evcomprosed in theery year. masking is inclusive always, so in this case the mask will
-        include 00:00:00 at the first of march. To exclude this one, pass:
-
-        .. doctest::
-
-           >>> start = "01-01T00:00:00"
-           >>> end = "02-28T23:59:59"
-
-        To mask intervals that lap over a seasons frame, like nights, or winter, exchange sequence of season start and
-        season end. For example, to mask night hours between 22:00:00 in the evening and 06:00:00 in the morning, pass:
-
-        >> start = "22:00:00"
-        >> end = "06:00:00"
-
-        """
-
-        warnings.warn(
-            """
-            The method selectTime is deprecated and will be removed in SaQC 2.10.
-            Please use the global method parameters start_date ande end_date instead.
-            """,
-            FutureWarning,
-            stacklevel=4,
-        )
-
-        datcol_idx = self._data[field].index
-
-        if mode == "periodic":
-            mask = periodicMask(datcol_idx, start, end, closed)
-        elif mode == "selection_field":
-            idx = self._data[selection_field].index.intersection(datcol_idx)
-            mask = self._data[selection_field].loc[idx]
-        else:
-            raise ValueError(
-                "Keyword passed as masking mode is unknown ({})!".format(mode)
-            )
-
-        mask = mask.reindex(self._data[field].index, fill_value=False).astype(bool)
-        self._data[field].loc[mask] = np.nan
-        self._flags[mask, field] = UNFLAGGED
         return self
 
     @register(

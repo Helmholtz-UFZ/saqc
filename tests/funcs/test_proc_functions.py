@@ -16,7 +16,6 @@ import pytest
 import saqc
 from saqc import UNFLAGGED, DictOfSeries, SaQC
 from saqc.core.flags import initFlagsLike
-from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
 from tests.fixtures import char_dict, course_3, course_5  # noqa, todo: fix fixtures
 
 
@@ -65,27 +64,6 @@ def test_rollingInterpolateMissing(course_5):
         interpol_flag=UNFLAGGED,
     )
     assert qc.data[field][characteristics["missing"]].isna().all()
-
-
-@pytest.mark.filterwarnings("ignore::FutureWarning")
-def test_transform(course_5):
-    data, characteristics = course_5(periods=10, nan_slice=[5, 6])
-    field = data.columns[0]
-    data = DictOfSeries(data)
-    flags = initFlagsLike(data)
-    qc = SaQC(data, flags)
-
-    result = qc.transform(field, func=linearInterpolation)
-    assert result.data[field][characteristics["missing"]].isna().all()
-
-    result = qc.transform(field, func=lambda x: linearInterpolation(x, inter_limit=3))
-    assert result.data[field][characteristics["missing"]].notna().all()
-
-    result = qc.transform(
-        field,
-        func=lambda x: polynomialInterpolation(x, inter_limit=3, inter_order=3),
-    )
-    assert result.data[field][characteristics["missing"]].notna().all()
 
 
 def test_resample(course_5):
