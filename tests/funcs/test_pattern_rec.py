@@ -27,7 +27,7 @@ def field(data):
     return data.columns[0]
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_flagPlateau():
     path = os.path.join(
         os.path.abspath(""), "docs/resources/data/turbidity_plateaus.csv"
@@ -37,7 +37,7 @@ def test_flagPlateau():
     dat = dat.ffill().bfill()
     qc = SaQC(dat)
     qc = qc.flagPlateau(
-        "base3", min_length="10min", max_length="7d", granularity="20min"
+        "base3", min_length="10min", max_length="7D", granularity="20min"
     )
     anomalies = [
         (0, 0),
@@ -55,7 +55,7 @@ def test_flagPlateau():
         assert not (f.iloc[na_slice].any())
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_flagPlateau_long():
     path = os.path.join(
         os.path.abspath(""), "docs/resources/data/turbidity_plateaus.csv"
@@ -71,7 +71,7 @@ def test_flagPlateau_long():
     )
     qc = SaQC(dat)
     qc = qc.flagPlateau(
-        "base3", min_length="10min", max_length="7d", granularity="20min"
+        "base3", min_length="10min", max_length="7D", granularity="20min"
     )
     anomalies = [
         (0, 0),
@@ -89,11 +89,11 @@ def test_flagPlateau_long():
         assert not (f.iloc[na_slice].any())
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize("plot", [True, False])
 @pytest.mark.parametrize("normalize", [True, False])
 def test_flagPattern_dtw(plot, normalize):
-    data = pd.Series(0, index=pd.date_range(start="2000", end="2001", freq="1d"))
+    data = pd.Series(0, index=pd.date_range(start="2000", end="2001", freq="1D"))
     data.iloc[10:18] = [0, 5, 6, 7, 6, 8, 5, 0]
     pattern = data.iloc[10:18]
 

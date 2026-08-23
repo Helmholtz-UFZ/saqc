@@ -52,6 +52,7 @@ class DriftMixin(ValidatePublicMembers):
         mask=["field"],
         demask=["field"],
         squeeze=["field"],  # reference is written !
+        mode="flagging",
         multivariate=True,
         handles_target=False,
         docstring=DOC_TEMPLATES["field"],
@@ -173,6 +174,7 @@ class DriftMixin(ValidatePublicMembers):
         mask=["field", "reference"],
         demask=["field", "reference"],
         squeeze=["field", "reference"],  # reference is written !
+        mode="flagging",
         multivariate=True,
         handles_target=False,
     )
@@ -246,7 +248,7 @@ class DriftMixin(ValidatePublicMembers):
 
         return self
 
-    @register(mask=["field"], demask=[], squeeze=[])
+    @register(mask=["field"], demask=[], squeeze=[], mode="processing")
     def correctDrift(
         self: SaQC,
         field: SaQCFields,
@@ -382,7 +384,12 @@ class DriftMixin(ValidatePublicMembers):
 
         return self
 
-    @register(mask=["field", "cluster_field"], demask=["cluster_field"], squeeze=[])
+    @register(
+        mask=["field", "cluster_field"],
+        demask=["cluster_field"],
+        squeeze=[],
+        mode="processing",
+    )
     def correctRegimeAnomaly(
         self: SaQC,
         field: SaQCFields,
@@ -507,7 +514,7 @@ class DriftMixin(ValidatePublicMembers):
         self._data[field] = data_ser
         return self
 
-    @register(mask=["field"], demask=[], squeeze=[])
+    @register(mask=["field"], demask=[], squeeze=[], mode="processing")
     def correctOffset(
         self: SaQC,
         field: SaQCFields,
@@ -659,7 +666,12 @@ class DriftMixin(ValidatePublicMembers):
         )
         return self
 
-    @register(mask=["field", "cluster_field"], demask=["cluster_field"], squeeze=[])
+    @register(
+        mask=["field", "cluster_field"],
+        demask=["cluster_field"],
+        squeeze=[],
+        mode="processing",
+    )
     def assignRegimeAnomaly(
         self: SaQC,
         field: SaQCFields,

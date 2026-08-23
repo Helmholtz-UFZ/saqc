@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 
 class ResidualsMixin(ValidatePublicMembers):
-    @register(mask=["field"], demask=[], squeeze=[])
+    @register(mask=["field"], demask=[], squeeze=[], mode="processing")
     def calculatePolynomialResiduals(
         self: SaQC,
         field: SaQCFields,
@@ -96,7 +96,7 @@ class ResidualsMixin(ValidatePublicMembers):
         self._data[field] = orig - data[field]
         return self
 
-    @register(mask=["field"], demask=[], squeeze=[])
+    @register(mask=["field"], demask=[], squeeze=[], mode="processing")
     def calculateRollingResiduals(
         self: SaQC,
         field: SaQCFields,

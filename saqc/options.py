@@ -4,6 +4,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import warnings
 from typing import Callable, Literal
 
 import matplotlib as mpl
@@ -52,9 +53,9 @@ def deprecateOptions(
 
     def warn(name: str) -> None:
         warnings.warn(
-            f"{module_name}.{name} is deprecated and will be removed in SaQC 2.10. "
+            f"{module_name}.{name} is deprecated and will be removed in SaQC 2.11. "
             f"Use {__name__}.{options_name}.{deprecations[name]} instead.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=3,
         )
 
@@ -91,6 +92,31 @@ class HistoryOptions:
             "min": lambda x: x.min(axis=1),
         }
         self.aggregation: Literal["last", "min", "max"] = "last"
+
+
+class FieldTargetOptions:
+    def __init__(self):
+        self.existing_target = "overwrite"
+
+    @property
+    def existing_target(self):
+        return self._existing_target
+
+    @existing_target.setter
+    def existing_target(self, value: Literal["overwrite", "append"]):
+        if value not in {"overwrite", "append"}:
+            raise ValueError(
+                "only 'overwrite' and 'append' are supported values for 'existing_target'"
+            )
+        if value == "overwrite":
+            warnings.warn(
+                "Overwriting existing targets in field-target flagging workflows is deprecated "
+                "and will be removed in SaQC 3.0. To opt into the new append behavior, set "
+                "saqc.options.field_target.existing_target = 'append'.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        self._existing_target = value
 
 
 class PlottingOptions:
@@ -206,3 +232,4 @@ history = HistoryOptions()
 plotting = PlottingOptions()
 optimization = OptimizationOptions()
 parsing = ParsingOptions()
+field_target = FieldTargetOptions()

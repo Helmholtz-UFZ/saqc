@@ -114,7 +114,7 @@ class ChangepointsMixin(ValidatePublicMembers):
         self._flags[mask, field] = flag
         return self
 
-    @register(mask=["field"], demask=[], squeeze=[])
+    @register(mask=["field"], demask=[], squeeze=[], mode="processing")
     def assignChangePointCluster(
         self: SaQC,
         field: SaQCFields,

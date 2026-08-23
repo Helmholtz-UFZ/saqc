@@ -143,10 +143,10 @@ def main(
     else:
         cr = cr.readCsv(config)
 
-    saqc = cr.run()
+    qc = cr.run()
 
-    data_result = saqc.data
-    flags_result = saqc.flags
+    data_result = qc.data
+    flags_result = qc.flags
 
     if outfile:
 

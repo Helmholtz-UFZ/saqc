@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import functools
 import inspect
+import uuid
 import warnings
 from typing import (
     TYPE_CHECKING,
@@ -14,6 +15,7 @@ from typing import (
     Callable,
     Dict,
     List,
+    Literal,
     ParamSpec,
     Sequence,
     Tuple,
@@ -36,6 +38,7 @@ from saqc.lib.tools import (
     toStrictPeriodicStamp,
 )
 from saqc.lib.types import EXTERNAL_FLAG, OptionalNone
+from saqc.options import field_target
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -400,6 +403,7 @@ def register(
     mask: list[str],
     demask: list[str],
     squeeze: list[str],
+    mode: Literal["flagging", "processing"],
     multivariate: bool = False,
     handles_target: bool = False,
     docstring: dict[str, ParamDict] | None = None,
@@ -442,6 +446,14 @@ def register(
         but should considered as a single column, because only one function call
         happened.
 
+    mode : {"flagging", "processing"}
+        Declares whether the decorated function only writes flags
+        (``"flagging"``) or visibly changes data values, indices, or columns
+        at the wrapper boundary (``"processing"``). Temporary data fields that
+        are removed before the function returns do not make a function
+        processing. Source-target append handling for existing targets is only
+        applied to flagging functions.
+
     multivariate : bool, default False
         If ``True``, the decorated function, processes multiple data or flag
         columns at once. Therefore the decorated function must handle a list
@@ -460,6 +472,11 @@ def register(
     """
 
     def outer(func: Callable[P, SaQC]) -> Callable[P, SaQC]:
+        if mode not in {"flagging", "processing"}:
+            raise ValueError(
+                f"mode must be one of 'flagging' or 'processing', not {mode!r}"
+            )
+
         func_signature = inspect.signature(func)
         _checkDecoratorKeywords(
             func_signature, func.__name__, mask, demask, squeeze, handles_target
@@ -481,7 +498,8 @@ def register(
             if regex is True:
                 warnings.warn(
                     "The global method parameter 'regex' will be removed in SaQC 2.10",
-                    DeprecationWarning,
+                    FutureWarning,
+                    stacklevel=3,
                 )
             if "target" in kwargs and kwargs["target"] is None:
                 kwargs.pop("target")
@@ -499,14 +517,43 @@ def register(
 
             out = saqc.copy(deep=True)
 
-            if not handles_target:
-                for src, trg in zip(fields, targets):
-                    if src != trg:
-                        out = out.copyField(field=src, target=trg, overwrite=True)
-
             for src, trg in zip(fields, targets):
+                tmp_targets = []
                 kw = {**kwargs, "field": src, "target": trg}
                 if not handles_target:
+                    if src != trg:
+                        if field_target.existing_target == "append":
+                            pairs = (
+                                [(src, trg)]
+                                if isinstance(src, str) and isinstance(trg, str)
+                                else zip(src, trg)
+                            )
+                            for scalar_src, scalar_trg in pairs:
+                                if (
+                                    mode == "flagging"
+                                    and scalar_src != scalar_trg
+                                    and scalar_trg in out.columns
+                                ):
+                                    tmp_target = str(uuid.uuid4())
+                                    # copy could be avoided if 'old_flag' would be generated earlier, which is possible.
+                                    out = out.copyField(
+                                        field=scalar_trg,
+                                        target=tmp_target,
+                                        overwrite=True,
+                                    )
+                                    tmp_targets.append(
+                                        (scalar_src, scalar_trg, tmp_target)
+                                    )
+                        if isinstance(src, str) and isinstance(trg, str):
+                            out = out.copyField(field=src, target=trg, overwrite=True)
+                        else:
+                            for scalar_src, scalar_trg in zip(src, trg):
+                                out = out.copyField(
+                                    field=scalar_src,
+                                    target=scalar_trg,
+                                    overwrite=True,
+                                )
+
                     kw["field"] = kw.pop("target")
 
                 out._data, storedData = applyMask(
@@ -529,9 +576,28 @@ def register(
 
                 out._validate(reason=f"call to {repr(func.__name__)}")
 
+                for scalar_src, scalar_trg, tmp_target in tmp_targets:
+                    out = out.concatFlags(
+                        field=scalar_trg,
+                        target=tmp_target,
+                        method="match",
+                        squeeze=-2,
+                    )
+                    for key in out._flags.history[scalar_trg].meta[-1]:
+                        out._flags.history[tmp_target].meta[-1][key] = (
+                            out._flags.history[scalar_trg].meta[-1][key]
+                        )
+                    out._flags.history[tmp_target].meta[-1]["kwargs"].update(
+                        dict(field=scalar_src, target=scalar_trg)
+                    )
+                    out = out.copyField(
+                        field=tmp_target, target=scalar_trg, overwrite=True
+                    ).dropField(field=tmp_target)
+
             return out
 
         FUNC_MAP[func.__name__] = inner
+        inner.mode = mode
         return inner
 
     return outer
@@ -558,7 +624,9 @@ def flagging(**kwargs):
     """
     if kwargs:
         raise ValueError("use '@register' to pass keywords")
-    return register(mask=["field"], demask=["field"], squeeze=["field"])
+    return register(
+        mask=["field"], demask=["field"], squeeze=["field"], mode="flagging"
+    )
 
 
 def processing(**kwargs):
@@ -580,4 +648,4 @@ def processing(**kwargs):
     """
     if kwargs:
         raise ValueError("use '@register' to pass keywords")
-    return register(mask=[], demask=[], squeeze=[])
+    return register(mask=[], demask=[], squeeze=[], mode="processing")

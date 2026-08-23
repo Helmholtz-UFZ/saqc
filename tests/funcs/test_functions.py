@@ -51,7 +51,7 @@ def test_flagRange(data, field):
     assert all(flagged == expected)
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_selectTime(data, field):
     data[field].iloc[::2] = 0
     data[field].iloc[1::2] = 50

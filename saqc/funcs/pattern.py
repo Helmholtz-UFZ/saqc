@@ -602,7 +602,8 @@ def calculateDistanceByDTW(
     """
     warnings.warn(
         "The function calculateDistanceByDTW is deprecated and will be removed in SaQC 2.10",
-        DeprecationWarning,
+        FutureWarning,
+        stacklevel=2,
     )
 
     if reference.hasnans or reference.empty:
@@ -821,7 +822,8 @@ class PatternMixin(ValidatePublicMembers):
 
         warnings.warn(
             "The method flagPatternByDTW is deprecated and will be removed in SaQC 2.10",
-            DeprecationWarning,
+            FutureWarning,
+            stacklevel=4,
         )
 
         ref = self._data[reference]

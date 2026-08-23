@@ -241,6 +241,7 @@ class ScoresMixin(ValidatePublicMembers):
         mask=["field"],
         demask=[],
         squeeze=["target"],
+        mode="processing",
         multivariate=True,
         handles_target=True,
         docstring={"field": DOC_TEMPLATES["field"], "target": DOC_TEMPLATES["target"]},
@@ -372,7 +373,7 @@ class ScoresMixin(ValidatePublicMembers):
 
         return self
 
-    @register(mask=["field"], demask=[], squeeze=[])
+    @register(mask=["field"], demask=[], squeeze=[], mode="processing")
     def assignZScore(
         self: SaQC,
         field: SaQCFields,
@@ -450,6 +451,7 @@ class ScoresMixin(ValidatePublicMembers):
         mask=["field"],
         demask=[],
         squeeze=["target"],
+        mode="processing",
         multivariate=True,
         handles_target=True,
         docstring={"field": DOC_TEMPLATES["field"], "target": DOC_TEMPLATES["target"]},
@@ -538,7 +540,7 @@ class ScoresMixin(ValidatePublicMembers):
 
         return self
 
-    @register(mask=["field"], demask=[], squeeze=[])
+    @register(mask=["field"], demask=[], squeeze=[], mode="processing")
     def assignUniLOF(
         self: SaQC,
         field: SaQCFields,

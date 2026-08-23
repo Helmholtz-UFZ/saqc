@@ -10,6 +10,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.9.1...main)
 ### Added
 ### Changed
+- Flagging functions append and align squeezed flag-history columns to `target` if `target` already exists
+- `flagGeneric`, `orGroup`, `andGroup`: if `field` and `target` indices are not aligned, flags are appended to `target` using an inner join on timestamps
+- `orGroup` and `andGroup` allow multiple `field` values for a single group
+- `register`: added mandatory parameter `mode`
 ### Removed
 ### Fixed
 ### Deprecated

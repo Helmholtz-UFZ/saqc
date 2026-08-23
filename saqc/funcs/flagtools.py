@@ -51,7 +51,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         """
         return self
 
-    @register(mask=[], demask=[], squeeze=["field"])
+    @register(mask=[], demask=[], squeeze=["field"], mode="flagging")
     def forceFlags(
         self: SaQC, field: SaQCFields, flag: EXTERNAL_FLAG = BAD, **kwargs
     ) -> SaQC:
@@ -64,7 +64,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         self._flags[:, field] = flag
         return self
 
-    @register(mask=[], demask=[], squeeze=["field"])
+    @register(mask=[], demask=[], squeeze=["field"], mode="flagging")
     def clearFlags(self: SaQC, field: SaQCFields, **kwargs) -> SaQC:
         """
         Assign UNFLAGGED to all periods.
@@ -82,7 +82,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
 
         return self.forceFlags(field, flag=UNFLAGGED, **kwargs)
 
-    @register(mask=[], demask=[], squeeze=["field"])
+    @register(mask=[], demask=[], squeeze=["field"], mode="flagging")
     def flagUnflagged(
         self: SaQC, field: SaQCFields, flag: EXTERNAL_FLAG = BAD, **kwargs
     ) -> SaQC:
@@ -168,6 +168,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         mask=[],
         demask=[],
         squeeze=[],
+        mode="flagging",
         handles_target=True,  # function defines a target parameter, so it needs to handle it
         multivariate=True,
     )
@@ -175,7 +176,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         self: SaQC,
         field: SaQCFields,
         target: SaQCColumns | NewSaQCFields,
-        squeeze: bool = False,
+        squeeze: int | bool = False,
         overwrite: bool = False,
         **kwargs,
     ) -> SaQC:
@@ -262,7 +263,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
                 raise ValueError(
                     f"All Field and Target indices must match!\n"
                     f"Indices of {field} and {target} seem to be not congruent within the context of the given\n"
-                    f"- fields: {fields}\n "
+                    f"- fields: {fields}\n"
                     f"- and targets: {targets}"
                 )
             history = self._flags.history[field].copy(deep=True)
@@ -273,7 +274,10 @@ class FlagtoolsMixin(ValidatePublicMembers):
 
             if squeeze:
                 # add squeezed flags
-                flags = history.squeeze(raw=True)
+                start = None
+                if not isinstance(squeeze, bool):
+                    start = squeeze
+                flags = history.squeeze(raw=True, start=start)
                 history = History(index=history.index).append(flags, meta)
             elif broadcasting is False:
                 # add an empty flags
@@ -417,7 +421,8 @@ class FlagtoolsMixin(ValidatePublicMembers):
     @register(
         mask=["field"],
         demask=["field"],
-        squeeze=["field"],
+        squeeze=["target"],
+        mode="flagging",
         multivariate=True,
         handles_target=True,
     )
@@ -478,7 +483,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         .. doctest:: andGroupExample
 
            >>> from saqc.lib.tools import periodicMask
-               >>> mask_func = lambda x: ~periodicMask(x.index, '06:00:00', '18:00:00', True)
+           >>> mask_func = lambda x: ~periodicMask(x.index, '06:00:00', '18:00:00', True)
            >>> dat = pd.Series(range(100), name='data', index=pd.date_range('2000', freq='4h', periods=100))
            >>> qc = saqc.SaQC(dat)
            >>> qc = qc.andGroup('data', group=[qc.flagRange('data', max=5), qc.flagGeneric('data', func=mask_func)])
@@ -518,7 +523,8 @@ class FlagtoolsMixin(ValidatePublicMembers):
     @register(
         mask=["field"],
         demask=["field"],
-        squeeze=["field"],
+        squeeze=["target"],
+        mode="flagging",
         multivariate=True,
         handles_target=True,
     )
@@ -644,9 +650,12 @@ def _groupOperation(
         group = [saqc]
 
     fields_ = fields[:]
-    if len(fields_) == 1:
+    if len(fields_) == 1 and len(group) > 1:
         # to simplify the retrieval from all groups...
         fields_ = fields * len(group)
+
+    if len(group) == 1 and len(fields_) > 1:
+        group = group * len(fields_)
 
     if len(fields_) != len(group):
         raise ValueError(
@@ -672,6 +681,11 @@ def _groupOperation(
 
     # write flags
     for t in targets:
-        saqc._flags[mask & isunflagged(saqc._flags[t], thresh=dfilter), t] = flag
+        target_mask = mask
+        if not target_mask.index.equals(saqc._flags[t].index):
+            target_mask = target_mask.reindex(
+                saqc._flags[t].index, fill_value=False
+            ).astype(bool)
+        saqc._flags[target_mask & isunflagged(saqc._flags[t], thresh=dfilter), t] = flag
 
     return saqc

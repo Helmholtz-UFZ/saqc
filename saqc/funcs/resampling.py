@@ -182,6 +182,7 @@ def _reindexerFromGrouper(
 def _aggregationGrouper(method, index, idx_source, tolerance, datcol, broadcast):
     direction = method[0]
     rd = {"f": "bfill", "b": "ffill", "n": "nearest", "m": None}
+    tolerance = None if rd[direction] is None else tolerance
     grouper = pd.Series(np.arange(len(index)), index=index)
     grouper = grouper.reindex(idx_source, method=rd[direction], tolerance=tolerance)
 
@@ -197,10 +198,9 @@ def _aggregationGrouper(method, index, idx_source, tolerance, datcol, broadcast)
 
     if broadcast:
         # to broadcast the aggregation one-to-many, we need a grouper from the inverted reindex
+        _rd = (direction + rd[direction][1:]) if rd[direction] is not None else None
         bc_grouper = pd.Series(np.arange(len(datcol)), index=datcol.index)
-        bc_grouper = bc_grouper.reindex(
-            index, method=direction + rd[direction][1:], tolerance=tolerance
-        )
+        bc_grouper = bc_grouper.reindex(index, method=_rd, tolerance=tolerance)
     else:
         bc_grouper = None
     return grouper, bc_grouper
@@ -291,7 +291,9 @@ class ResamplingMixin(ValidatePublicMembers):
 
         return idx, idx_source, datcol
 
-    @register(mask=["field"], demask=[], squeeze=[], multivariate=True)
+    @register(
+        mask=["field"], demask=[], squeeze=[], mode="processing", multivariate=True
+    )
     def resample(
         self: SaQC,
         field: SaQCFields,
@@ -415,6 +417,7 @@ class ResamplingMixin(ValidatePublicMembers):
         mask=["field"],
         demask=[],
         squeeze=[],
+        mode="processing",
         docstring={"target": DOC_TEMPLATES["target"]},
     )
     def reindex(
@@ -808,6 +811,7 @@ class ResamplingMixin(ValidatePublicMembers):
         mask=[],
         demask=[],
         squeeze=[],
+        mode="flagging",
         handles_target=True,  # target is mandatory in func, so its allowed
         docstring={"target": DOC_TEMPLATES["target"]},
     )
@@ -832,7 +836,7 @@ class ResamplingMixin(ValidatePublicMembers):
         invert: bool = True,
         freq: FreqStr | pd.Timedelta | None = None,
         drop: bool = False,
-        squeeze: bool = False,
+        squeeze: int | bool = False,
         override: bool = False,
         **kwargs,
     ) -> SaQC:
@@ -932,7 +936,7 @@ class ResamplingMixin(ValidatePublicMembers):
             broadcast=True,
         )
         # transfer reindexed flags
-        self = self.transferFlags(temp_field, target, squeeze=squeeze)
+        self = self.transferFlags(temp_field, target, squeeze=squeeze, **kwargs)
         self = self.dropField(field=temp_field)
         if drop:
             return self.dropField(field=field)

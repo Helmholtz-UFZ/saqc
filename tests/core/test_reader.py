@@ -30,7 +30,7 @@ def getTestedVariables(flags: Flags, test: str):
     return out
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_variableRegex(data):
     header = f"varname;test"
     function = "flagDummy"

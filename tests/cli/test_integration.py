@@ -57,7 +57,7 @@ DMP = [
 ]
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize(
     "scheme, expected",
     [("float", FLOAT), ("simple", SIMPLE), ("positional", POSITIONAL), ("dmp", DMP)],
