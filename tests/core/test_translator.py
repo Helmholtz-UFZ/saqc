@@ -146,7 +146,7 @@ def test_positionalTranslatorIntegration():
 
     scheme = PositionalScheme()
     saqc = SaQC(data=data, scheme=scheme)
-    saqc = saqc.flagMissing(col).flagRange(col, min=3, max=10, flag=DOUBTFUL)
+    saqc = saqc.flagNAN(col).flagRange(col, min=3, max=10, flag=DOUBTFUL)
     flags = saqc.flags
 
     for field in flags.keys():
@@ -166,7 +166,7 @@ def test_dmpTranslatorIntegration():
 
     scheme = DmpScheme()
     saqc = SaQC(data=data, scheme=scheme)
-    saqc = saqc.flagMissing(col).flagRange(col, min=3, max=10)
+    saqc = saqc.flagNAN(col).flagRange(col, min=3, max=10)
     flags = saqc.flags
 
     qflags = pd.DataFrame({k: v["quality_flag"] for k, v in flags.items()})
@@ -176,7 +176,7 @@ def test_dmpTranslatorIntegration():
     assert qflags.isin(scheme._forward.keys()).all(axis=None)
     assert (
         qfunc.map(lambda v: json.loads(v)["test"] if v else "")
-        .isin({"", "flagMissing", "flagRange"})
+        .isin({"", "flagNAN", "flagRange"})
         .all(axis=None)
     )
     assert (qcause[qflags[col] == "BAD"] == "OTHER").all(axis=None)

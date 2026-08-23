@@ -51,60 +51,6 @@ def test_flagRange(data, field):
     assert all(flagged == expected)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
-def test_selectTime(data, field):
-    data[field].iloc[::2] = 0
-    data[field].iloc[1::2] = 50
-    nyears = len(data[field].index.year.unique())
-
-    tests = [
-        (
-            {
-                "min": 1,
-                "max": 100,
-                "startmonth": 7,
-                "startday": 1,
-                "endmonth": 8,
-                "endday": 31,
-            },
-            31 * 2 * nyears // 2,
-        ),
-        (
-            {
-                "min": 1,
-                "max": 100,
-                "startmonth": 12,
-                "startday": 16,
-                "endmonth": 1,
-                "endday": 15,
-            },
-            31 * nyears // 2 + 1,
-        ),
-    ]
-
-    flags = initFlagsLike(data)
-    qc = SaQC(data, flags)
-    for test, expected in tests:
-        newfield = f"{field}_masked"
-        start = f"{test['startmonth']:02}-{test['startday']:02}T00:00:00"
-        end = f"{test['endmonth']:02}-{test['endday']:02}T00:00:00"
-
-        qc = qc.copyField(field, newfield)
-        qc = qc.selectTime(
-            newfield,
-            mode="periodic",
-            start=start,
-            end=end,
-            closed=True,
-            flag=BAD,
-        )
-        qc = qc.flagRange(newfield, min=test["min"], max=test["max"], flag=BAD)
-        qc = qc.transferFlags(newfield, target=field, flag=BAD, overwrite=True)
-        qc = qc.dropField(newfield)
-        flagged = qc._flags[field] > UNFLAGGED
-        assert flagged.sum() == expected
-
-
 def test_clearFlags(data, field):
     flags = initFlagsLike(data)
     flags[:, field] = BAD

@@ -503,7 +503,7 @@ But we could also quality check our independent variables first and than leverag
 
          varname ; test
          #-------;--------------------------------------------------------------------------
-         '.*'    ; flagMissing()
+         '.*'    ; flagNAN()
          fan     ; flagGeneric(func=fan == 0)
          volt    ; flagGeneric(func=volt < 12.0)
          meas    ; flagGeneric(field=["fan", "volt"], func=isflagged(fan) | isflagged(volt))
@@ -515,7 +515,7 @@ But we could also quality check our independent variables first and than leverag
         ...         """
         ...         varname ; test
         ...         #-------;--------------------------------------------------------------------------
-        ...         '.*'    ; flagMissing()
+        ...         '.*'    ; flagNAN()
         ...         fan     ; flagGeneric(func=fan == 0)
         ...         volt    ; flagGeneric(func=volt < 12.0)
         ...         meas    ; flagGeneric(field=["fan", "volt"], func=isflagged(fan) | isflagged(volt))

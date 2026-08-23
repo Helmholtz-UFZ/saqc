@@ -278,12 +278,13 @@ without returning *nan*.
    from scipy.stats import zscore
    zscore_func = lambda x: zscore(x, nan_policy='omit')
 
-Now we can pass the function to the :py:meth:`~saqc.SaQC.transform` method.
+Now we can pass the function to the :py:meth:`~saqc.SaQC.processGeneric` method.
 
 .. doctest:: exampleMV
 
-   >>> qc = qc.transform(['sac254_corrected', 'level_raw', 'water_temp_raw'],
-   ... target=['sac254_norm', 'level_norm', 'water_temp_norm'], func=zscore_func, freq='30D')
+   >>> qc = qc.processGeneric(field='sac254_corrected', target='sac254_norm', func=zscore_func)
+   >>> qc = qc.processGeneric(field='level_raw', target='level_norm', func=zscore_func)
+   >>> qc = qc.processGeneric(field='water_temp_raw', target='water_temp_norm', func=zscore_func)
 
 
 .. plot::
@@ -292,7 +293,10 @@ Now we can pass the function to the :py:meth:`~saqc.SaQC.transform` method.
    :width: 80 %
    :class: center
 
-   qc = qc.transform(['sac254_raw', 'level_raw', 'water_temp_raw'], target=['sac254_norm', 'level_norm', 'water_temp_norm'], func=zscore_func, freq='30D')
+   qc = qc.processGeneric(field='sac254_corrected', target='sac254_norm', func=zscore_func)
+   qc = qc.processGeneric(field='level_raw', target='level_norm', func=zscore_func)
+   qc = qc.processGeneric(field='water_temp_raw', target='water_temp_norm', func=zscore_func)
+
 
 The idea of the multivariate flagging approach we are going for, is,
 to assign any datapoint a score, derived from the distance this datapoint has to its *k* nearest

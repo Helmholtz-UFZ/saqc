@@ -16,6 +16,4 @@ and deleting variables.
    ~SaQC.copyField
    ~SaQC.dropField
    ~SaQC.renameField
-   ~SaQC.selectTime
    ~SaQC.plot
-

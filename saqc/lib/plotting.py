@@ -324,10 +324,10 @@ def _configMarkers(
                 marker_col_cycle,
             )
 
-    # Also skip plot, if all flagged values are np.nans (to catch flag missing and masked results mainly)
+    # Also skip plot, if all flagged values are np.nans (to catch flagNAN and masked results mainly)
     temp_i = var_dat.index.join(flags_i.index, how="inner")
     if var_dat[temp_i][flags_i[temp_i].notna()].isna().all() or (
-        "flagMissing" in test_i_meta["func"]
+        "flagNAN" in test_i_meta["func"]
     ):
         return None, _scatter_kwargs, _scatter_mem, marker_shape_cycle, marker_col_cycle
 

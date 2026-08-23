@@ -11,7 +11,7 @@
 Detecting breaks in data.
 
 This module provides functions to detect and flag breaks in data, for example temporal
-gaps (:py:func:`flagMissing`), jumps and drops (:py:func:`flagJumps`) or temporal
+gaps (:py:func:`flagNAN`), jumps and drops (:py:func:`flagJumps`) or temporal
 isolated values (:py:func:`flagIsolated`).
 """
 
@@ -40,21 +40,6 @@ if TYPE_CHECKING:
 
 
 class BreaksMixin(ValidatePublicMembers):
-
-    @register(mask=[], demask=[], squeeze=["field"], mode="flagging")
-    def flagMissing(
-        self: SaQC,
-        field: SaQCFields,
-        flag: EXTERNAL_FLAG = BAD,
-        dfilter: float = FILTER_ALL,
-        **kwargs,
-    ) -> SaQC:
-        """
-        .. deprecated:: 2.7.0
-           Deprecated Function. Please use to :py:meth:`~saqc.SaQC.flagNaN` instead.
-        """
-
-        return self.flagNAN(field, flag, dfilter, **kwargs)
 
     @register(mask=[], demask=[], squeeze=["field"], mode="flagging")
     def flagNAN(

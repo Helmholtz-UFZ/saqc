@@ -51,7 +51,7 @@ a specific variable (and you probably want to), list them in separate rows:
 
    varname ; test
    #-------;----------------------------------
-   x       ; flagMissing()
+   x       ; flagNAN()
    x       ; flagRange(min=0, max=100)
    x       ; flagConstants(window="3h")
    y       ; flagRange(min=-10, max=40)
@@ -108,4 +108,4 @@ variable name as a regular expression, it needs to be quoted with ``'`` or ``"``
    varname    ; test
    #----------;------------------------------
    '.*'       ; shift(freq="15Min")
-   '(x | y)'  ; flagMissing()
+   '(x | y)'  ; flagNAN()

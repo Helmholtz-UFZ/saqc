@@ -23,7 +23,6 @@ from saqc.funcs.residuals import ResidualsMixin
 from saqc.funcs.rolling import RollingMixin
 from saqc.funcs.scores import ScoresMixin
 from saqc.funcs.tools import ToolsMixin
-from saqc.funcs.transformation import TransformationMixin
 
 
 class FunctionsMixin(
@@ -43,7 +42,6 @@ class FunctionsMixin(
     RollingMixin,
     ScoresMixin,
     ToolsMixin,
-    TransformationMixin,
     OptiSaqcMixin,
 ):
     pass
