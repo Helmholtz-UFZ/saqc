@@ -9,6 +9,7 @@ import ast
 import io
 import json
 import logging
+import re
 import textwrap
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence, TextIO, Tuple
@@ -98,7 +99,6 @@ class _ConfigReader:
         self.file = None
         self.config = None
         self.parsed = None
-        self.regex = None
         self.varname = None
         self.lineno = None
         self.field = None
@@ -150,8 +150,13 @@ class _ConfigReader:
 
     def _parseLine(self):
         self.logger.debug(f"parse line {self.lineno}: {self.varname!r}; {self.test!r}")
-        self.regex = isQuoted(self.varname)
-        self.field = self.varname[1:-1] if self.regex else self.varname
+        regex = isQuoted(self.varname)
+        if regex:
+            cols = self.saqc.columns
+            pattern = re.compile(self.varname[1:-1])
+            self.field = cols[[bool(pattern.search(col)) for col in cols]]
+        else:
+            self.field = self.varname
 
         try:
             tree = ast.parse(self.test, mode="eval").body
@@ -184,9 +189,7 @@ class _ConfigReader:
         # in order to do a FUNC_MAP lookup. Otherwise, we wouldn't be able
         # to overwrite existing test functions with custom register calls.
         try:
-            self.saqc = self.saqc.__getattr__(self.func)(
-                regex=self.regex, **self.func_kws
-            )
+            self.saqc = self.saqc.__getattr__(self.func)(**self.func_kws)
         except Exception as e:
             # We use a special technique for raising here, because
             # we want this location of rising, line up in the traceback,

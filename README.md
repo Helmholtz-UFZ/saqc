@@ -61,7 +61,7 @@ An example configuration file can be found [here](https://git.ufz.de/rdm-softwar
 varname    ; test
 #----------; ---------------------------------------------------------------------
 SM2        ; align(freq="15Min")
-'SM(1|2)+' ; flagMissing()
+'SM(1|2)+' ; flagNAN()
 SM1        ; flagRange(min=10, max=60)
 SM2        ; flagRange(min=10, max=40)
 SM2        ; flagZScore(window="30d", thresh=3.5, method='modified', center=False)
@@ -102,10 +102,10 @@ data = pd.read_csv(
 
 qc = SaQC(data=data)
 qc = (qc
-      .align("SM2", freq="15Min")
-      .flagMissing("SM(1|2)+", regex=True)
-      .flagRange("SM1", min=10, max=60)
-      .flagRange("SM2", min=10, max=40)
+      .align(field="SM2", freq="15Min")
+      .flagNAN(field=["SM1", "SM2"])
+      .flagRange(field="SM1", min=10, max=60)
+      .flagRange(field="SM2", min=10, max=40)
       .flagZScore("SM2", window="30d", thresh=3.5, method='modified', center=False)
       .flagGeneric(field=["SM1", "SM2"], target="Dummy", func=lambda x, y: (isflagged(x) | isflagged(y))))
 ```

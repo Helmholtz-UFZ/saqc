@@ -15,6 +15,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `orGroup` and `andGroup` allow multiple `field` values for a single group
 - `register`: added mandatory parameter `mode`
 ### Removed
+- Deprecated global parameter `regex`
 ### Fixed
 ### Deprecated
 

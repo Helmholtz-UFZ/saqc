@@ -255,16 +255,6 @@ def _unmaskData(
     return data
 
 
-def _expandField(regex, columns, field) -> List[str]:
-    """
-    Expand regular expressions to concrete field names.
-    """
-    if regex:
-        fmask = columns.str.match(field)
-        return columns[fmask].tolist()
-    return toSequence(field)
-
-
 def _homogenizeFieldsTargets(
     multivariate,
     handles_target,
@@ -322,9 +312,7 @@ def normalizeKwargs(
 
 
 def resolveFieldsTargets(
-    saqc: "SaQC",
     field: str | Sequence[str],
-    regex: bool,
     kwargs: dict[str, Any],
     multivariate: bool,
     handlesTarget: bool,
@@ -332,7 +320,7 @@ def resolveFieldsTargets(
     """
     Expand field expressions, resolve targets, and homogenize to consistent lists.
     """
-    fields = _expandField(regex, saqc._data.columns, field)
+    fields = toSequence(field)
     targets = toSequence(kwargs.pop("target", fields))
     return _homogenizeFieldsTargets(multivariate, handlesTarget, fields, targets)
 
@@ -490,17 +478,10 @@ def register(
             *args,
             start_date: str | pd.Timestamp | None = None,
             end_date: str | pd.Timestamp | None = None,
-            regex: bool = False,
             flag: EXTERNAL_FLAG | OptionalNone = OptionalNone(),
             **kwargs,
         ) -> "SaQC":
 
-            if regex is True:
-                warnings.warn(
-                    "The global method parameter 'regex' will be removed in SaQC 2.10",
-                    FutureWarning,
-                    stacklevel=3,
-                )
             if "target" in kwargs and kwargs["target"] is None:
                 kwargs.pop("target")
 
@@ -512,7 +493,7 @@ def register(
 
             kwargs = normalizeKwargs(func_signature, args, kwargs, flag, saqc)
             fields, targets = resolveFieldsTargets(
-                saqc, field, regex, kwargs, multivariate, handles_target
+                field, kwargs, multivariate, handles_target
             )
 
             out = saqc.copy(deep=True)

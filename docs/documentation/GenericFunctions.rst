@@ -482,7 +482,7 @@ But we could also quality check our independent variables first and than leverag
       .. testcode:: python
 
          qc8 = (qc
-                .flagMissing(".*", regex=True)
+                .flagNAN(qc.columns)
                 .flagGeneric(field="fan", func=lambda x: x == 0)
                 .flagGeneric(field="volt", func=lambda x: x < 12)
                 .flagGeneric(field=["fan", "volt"], target="meas", func=lambda x, y: isflagged(x) | isflagged(y)))
