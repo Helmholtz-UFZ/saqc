@@ -7,7 +7,16 @@ SPDX-License-Identifier: GPL-3.0-or-later
 # Changelog
 
 ## Unreleased
-[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.9.1...main)
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.10.0..main)
+### Added
+### Changed
+### Removed
+### Fixed
+### Deprecated
+
+
+## [2.10.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.10.0) - 2026-08-24
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.9.1..v2.10.0)
 ### Added
 ### Changed
 - Flagging functions append and align squeezed flag-history columns to `target` if `target` already exists
@@ -15,6 +24,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `orGroup` and `andGroup` allow multiple `field` values for a single group
 - `register`: added mandatory parameter `mode`
 ### Removed
+- Removed support for Python 3.11
 - Removed deprecated global parameter `regex`
 - Removed deprecated methods `SaQC.flagMissing`, `SaQC.flagPatternByDTW`, `SaQC.selectTime`, and `SaQC.transform`
 - Removed deprecated function `calculateDistanceByDTW`
@@ -22,7 +32,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Deprecated
 
 
-## [2.9.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.9.0) - 2026-06-29
+## [2.9.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.9.1) - 2026-06-29
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.9.0..v2.9.1)
 ### Added
 - `SaQC.flagConstants`: Default value for parameter `thresh`
