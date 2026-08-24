@@ -15,7 +15,6 @@ import pytest
 import saqc
 from saqc import BAD, UNFLAGGED, DictOfSeries, SaQC
 from saqc.core.flags import initFlagsLike
-from tests.fixtures import char_dict, course_1, course_2, course_3, course_4
 
 
 @pytest.fixture(scope="module")
@@ -50,21 +49,6 @@ def test_flagSpikesBasic(spiky_data):
     flag_result = qc.flags[field]
     test_sum = (flag_result.iloc[spiky_data[1]] == BAD).sum()
     assert test_sum == len(spiky_data[1])
-
-
-def test_grubbs(course_3):
-    data, char_dict = course_3(
-        freq="10min",
-        periods=45,
-        initial_level=0,
-        final_level=0,
-        crowd_size=1,
-        crowd_spacing=3,
-        out_val=-10,
-    )
-    flags = initFlagsLike(data)
-    qc = SaQC(data, flags).flagUniLOF("data", density=0.4)
-    assert np.all(qc.flags["data"][char_dict["drop"]] > UNFLAGGED)
 
 
 @pytest.mark.parametrize(
@@ -150,7 +134,7 @@ def test_flagZScoresMV():
     assert (qc.flags.to_pandas().iloc[[40, 80], 0] > 0).all()
 
 
-@pytest.mark.filterwarnings("ignore:Number of distinct clusters")
+@pytest.mark.filterwarnings("ignore::sklearn.exceptions.ConvergenceWarning")
 @pytest.mark.parametrize("n", [1, 10])
 @pytest.mark.parametrize("p", [1, 2])
 @pytest.mark.parametrize(

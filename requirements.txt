@@ -2,16 +2,16 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-click==8.4.1
+click==8.4.2
 docstring_parser==0.18
 fancy-collections==0.3.0
 fastdtw==0.3.4
-matplotlib==3.10.9
-numpy==2.4.6
-pyarrow==24.0.0
-pymoo==0.6.1.6
-pandas==3.0.3
-scikit-learn==1.8.0
-scipy==1.17.1
+matplotlib==3.11.1
+numpy==2.5.2
+pyarrow==25.0.1
+pymoo==0.6.2
+pandas==3.0.5
+scikit-learn==1.9.0
+scipy==1.18.1
 pydantic==2.13.4
 pywavelets==1.9.0

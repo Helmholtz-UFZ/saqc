@@ -8,9 +8,9 @@ sphinx-automodapi==0.22.0
 sphinxcontrib-fulltoc==1.2.0
 sphinx-markdown-tables==0.0.17
 jupyter-sphinx==0.5.3
-sphinx_autodoc_typehints==3.10.2
+sphinx_autodoc_typehints==3.13.2
 sphinx-tabs==3.5.0
 sphinx-design==0.7.0
-autodoc_pydantic==2.1.0
-pydata-sphinx-theme==0.17.1
+autodoc_pydantic==2.2.0
+pydata-sphinx-theme==0.20.0
 
