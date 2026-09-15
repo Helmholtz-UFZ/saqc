@@ -720,7 +720,9 @@ class ResamplingMixin(ValidatePublicMembers):
 
         if len(index) == 0:
             new_dat = pd.Series([], index=pd.DatetimeIndex([]))
-            flags_reindexer = lambda x: pd.Series([], pd.DatetimeIndex([]))
+            flags_reindexer = lambda x: pd.Series([], pd.DatetimeIndex([])).astype(
+                float
+            )
 
         if method == "match":
             data_aggregation = lambda x: x

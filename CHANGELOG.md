@@ -12,6 +12,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Changed
 ### Removed
 ### Fixed
+- BUGFIX: appending to empty target implicitly via *source-target* workflow now does not fail no more for empty target
 ### Deprecated
 
 
