@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import uuid
+import warnings
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -340,7 +341,7 @@ class OptiSaqcMixin:
 
                 opt_results[i] = minimize(
                     problem=problem_instances[i],
-                    return_least_infeasible=True,
+                    # return_least_infeasible=True,
                     save_history=True,
                     seed=optimization.seed,
                     verbose=verbose,

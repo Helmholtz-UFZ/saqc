@@ -13,6 +13,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Removed
 ### Fixed
 - BUGFIX: appending to empty target implicitly via *source-target* workflow now does not fail no more for empty target
+- search space for `FitFlagRange` parameters is now constraint to valid parameterspace 
 ### Deprecated
 
 

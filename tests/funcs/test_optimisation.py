@@ -104,6 +104,7 @@ def test_single_target_outlier():
         pop_size=5,
         termination=("n_evals", 10),
     )
+
     qc = qc.calibratePipeline(
         "data",
         problems=["range"],
