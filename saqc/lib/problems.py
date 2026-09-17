@@ -1102,15 +1102,29 @@ class FitRange(SaQCProblem):
         """
 
         d = self.qc.data[self.var]
-        _min = d.min() - 1
-        _max = d.max() + 1
+        d_min = d.min()
+        d_max = d.max()
+        d_range = d_max - d_min
+        buffer_space = d_range * 0.05 if d_range > 0 else 1
+        _min = d_min - buffer_space
+        _range = (d_max + buffer_space) - _min
         self.parameters = dict(
-            min=Real(bounds=(_min, _max)),
-            max=Real(bounds=(_min, _max)),
+            min=Real(bounds=(_min, _min + _range)),
+            max=Real(bounds=(0, _range)),
+            # max=Real(bounds=(_min, _max)),
         )
         # try to choose "min" as high as possible and "max" as low as possible, (without messing up FP and FN)
         self.isolation_directions = ["min", "~max"]
         self.config = ("flagRange", dict())
+
+        def conversion(X):
+            x = X.copy()
+            x["max"] = X["min"] + X["max"]
+            x["max"] = None if (x["max"] > d_max) else x["max"]
+            x["min"] = None if (x["min"] < d_min) else x["min"]
+            return x
+
+        self.conversions = conversion
 
     @staticmethod
     def funcBody(qc, field, X: dict, **kwargs) -> "SaQC":
@@ -1145,11 +1159,10 @@ class FitRange(SaQCProblem):
                     ]
                 )
             ]
-            out["G"] = [X["min"] - X["max"]]  # -> "X["min"] - X["max"] < 0"
         elif self.mode == 1:
             # out["F"] = [self.T(X,'thresh',1) , self.T(X, 'window',1) , self.T(X, 'min_residuals',1)]
             out["F"] = [sum([self.T(X, d, 1) for d in self.generalisation_directions])]
-            out["G"] = [self.falsification_count(), X["min"] - X["max"]]
+            out["G"] = [self.falsification_count()]
         else:
             raise ValueError(f"Optimisation Mode {self.mode} not known.")
 
