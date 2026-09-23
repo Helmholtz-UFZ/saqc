@@ -558,11 +558,8 @@ def register(
                 out._validate(reason=f"call to {repr(func.__name__)}")
 
                 for scalar_src, scalar_trg, tmp_target in tmp_targets:
-                    out = out.concatFlags(
-                        field=scalar_trg,
-                        target=tmp_target,
-                        method="match",
-                        squeeze=-2,
+                    out = out.transferFlags(
+                        field=scalar_trg, target=tmp_target, squeeze=-1
                     )
                     for key in out._flags.history[scalar_trg].meta[-1]:
                         out._flags.history[tmp_target].meta[-1][key] = (

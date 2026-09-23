@@ -9,7 +9,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## Unreleased
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.10.0..main)
 ### Added
+- `transferFlags` inner-join-aligns source and targe 
 ### Changed
+- `flagging` functions append and align squeezed columns of their flags output to `target`, if `target` is given 
+- `transferFlags`does not append nan columns to target history no more (for squeeze=False)
 ### Removed
 ### Fixed
 - BUGFIX: appending to empty target implicitly via *source-target* workflow now does not fail no more for empty target

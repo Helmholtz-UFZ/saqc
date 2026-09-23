@@ -227,14 +227,11 @@ def test_transferFlags():
 
     # no squueze
     qc1 = qc.transferFlags("x", target="a")
-    assert qc1._history["a"].hist.iloc[:, :-1].equals(qc1._history["x"].hist)
-    assert qc1._history["a"].hist.iloc[:, -1].isna().all()
+    assert qc1._history["a"].hist.equals(qc1._history["x"].hist)
 
     qc2 = qc.transferFlags(["x", "y"], target=["a", "b"])
-    assert qc2._history["a"].hist.iloc[:, :-1].equals(qc2._history["x"].hist)
-    assert qc2._history["a"].hist.iloc[:, -1].isna().all()
-    assert qc2._history["b"].hist.iloc[:, :-1].equals(qc2._history["y"].hist)
-    assert qc2._history["b"].hist.iloc[:, -1].isna().all()
+    assert qc2._history["a"].hist.equals(qc2._history["x"].hist)
+    assert qc2._history["b"].hist.equals(qc2._history["y"].hist)
 
     # we use the overwrite option here for easy checking against the origin
     # flags, because otherwise we would need to respect the inserted nan
@@ -242,7 +239,6 @@ def test_transferFlags():
     assert qc3._history["a"].hist.iloc[:, 0].equals(qc3._history["x"].hist.squeeze())
     assert qc3._history["a"].hist.iloc[:, 1].equals(qc3._history["y"].hist.squeeze())
     assert qc3._history["a"].hist.iloc[:, 2].equals(qc3._history["z"].hist.squeeze())
-    assert qc3._history["a"].hist.iloc[:, -1].isna().all()
 
     # squueze
     qc1 = qc.transferFlags("x", target="a", squeeze=True)

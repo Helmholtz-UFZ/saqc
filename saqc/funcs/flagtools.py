@@ -190,16 +190,17 @@ class FlagtoolsMixin(ValidatePublicMembers):
         Parameters
         ----------
         squeeze :
-            Append history or aggregation.
+            Squash appended history.
 
             If True, flagging history of `field` is compressed and function-specific flag information is lost,
             before it gets appended to `target`.
             If False, flagging history of `field` is appended to `target`.
+            If int, append the squash of history[:,slice(squeeze,None)]
 
         overwrite :
             Override target flags.
 
-            If True, existing flags in the target field are overridden.
+            If True, a period can get assigned a flag level that evaluates below its current flag level.
 
         Examples
         --------
@@ -241,7 +242,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         * :py:meth:`saqc.SaQC.flagGeneric`
         * :py:meth:`saqc.SaQC.concatFlags`
         """
-        fields, targets, broadcasting = multivariateParameters(field, target)
+        fields, targets, many_to_one = multivariateParameters(field, target)
         meta = {
             "func": "transferFlags",
             "args": (),
@@ -260,13 +261,15 @@ class FlagtoolsMixin(ValidatePublicMembers):
                 self._data[target] = pd.Series(np.nan, index=self._data[field].index)
                 self._flags._data[target] = History(self._data[target].index)
             if not self._data[field].index.equals(self._data[target].index):
-                raise ValueError(
-                    f"All Field and Target indices must match!\n"
-                    f"Indices of {field} and {target} seem to be not congruent within the context of the given\n"
-                    f"- fields: {fields}\n"
-                    f"- and targets: {targets}"
+                h_src = self._flags.history[field].copy(deep=True)
+                i_trg = self._data[target].index
+                history = h_src.apply(
+                    i_trg,
+                    lambda x, fill_value: x.reindex(i_trg, fill_value=fill_value),
+                    func_kws=dict(fill_value=np.nan),
                 )
-            history = self._flags.history[field].copy(deep=True)
+            else:
+                history = self._flags.history[field].copy(deep=True)
 
             if overwrite is False:
                 mask = isflagged(self._flags[target], thresh=kwargs["dfilter"])
@@ -279,23 +282,8 @@ class FlagtoolsMixin(ValidatePublicMembers):
                     start = squeeze
                 flags = history.squeeze(raw=True, start=start)
                 history = History(index=history.index).append(flags, meta)
-            elif broadcasting is False:
-                # add an empty flags
-                flags = pd.Series(np.nan, index=history.index, dtype=float)
-                history.append(flags, meta)
-            # else:
-            #    broadcasting -> multiple fields will be written to one target
-            #    only add the fields' histories and add an empty column later
 
             self._flags.history[target].append(history)
-
-        if broadcasting and not squeeze:
-            # add one final history column
-            # all targets are identical, if we broadcast fields -> target
-            target = targets[0]
-            history = self._flags.history[target]
-            flags = pd.Series(np.nan, index=history.index, dtype=float)
-            self._flags.history[target].append(flags, meta)
 
         return self
 
