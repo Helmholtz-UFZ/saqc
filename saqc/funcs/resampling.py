@@ -908,38 +908,45 @@ class ResamplingMixin(ValidatePublicMembers):
         if target is None:
             target = field
 
-        # map liases/traditional notions to correct method names (important to find auto-invert)
-        method = "mshift" if method == "linear" else method
-        method = "fshift" if method == "pad" else method
+        if (
+            method != "match"
+        ):  # only set in motion reindexer, if operation is not a simple match handled by transfer flags anyways
 
-        # if last method is to be inverted automatically, the last method that is not already inverted
-        # has to be found in the meta:
-        if method == "auto":
-            reindex_method = self._invertLast(field)
+            # map liases/traditional notions to correct method names (important to find auto-invert)
+            method = "mshift" if method == "linear" else method
+            method = "fshift" if method == "pad" else method
+
+            # if last method is to be inverted automatically, the last method that is not already inverted
+            # has to be found in the meta:
+            if method == "auto":
+                reindex_method = self._invertLast(field)
+            else:
+                reindex_method = METHODINVERTS[method] if invert else method
+
+            freq = freq or getFreqDelta(self._data[field].index)
+            temp_field = str(uuid.uuid4())
+
+            # parametrise reindexer:
+            # - FILTER_NONE is set, since we want to backproject ALL flags (not only the good ones)
+            # - no data_aggregation is set, since we only are interested in the reindexed flags
+            # - flags_aggregation defaults to max
+            # - broadcast is True, since we project a flag onto all the periods its data value was aggregated
+            #   from when aligning
+            self = self.reindex(
+                field,
+                target=temp_field,
+                index=self._data[target].index,
+                tolerance=freq,
+                dfilter=saqc.constants.FILTER_NONE,
+                override=override,
+                method=reindex_method,
+                broadcast=True,
+            )
+            # transfer reindexed flags
+            self = self.transferFlags(temp_field, target, squeeze=squeeze, **kwargs)
+            self = self.dropField(field=temp_field)
         else:
-            reindex_method = METHODINVERTS[method] if invert else method
-
-        freq = freq or getFreqDelta(self._data[field].index)
-        temp_field = str(uuid.uuid4())
-        # parametrise reindexer:
-        # - FILTER_NONE is set, since we want to backproject ALL flags (not only the good ones)
-        # - no data_aggregation is set, since we only are interested in the reindexed flags
-        # - flags_aggregation defaults to max
-        # - broadcast is True, since we project a flag onto all the periods its data value was aggregated
-        #   from when aligning
-        self = self.reindex(
-            field,
-            target=temp_field,
-            index=self._data[target].index,
-            tolerance=freq,
-            dfilter=saqc.constants.FILTER_NONE,
-            override=override,
-            method=reindex_method,
-            broadcast=True,
-        )
-        # transfer reindexed flags
-        self = self.transferFlags(temp_field, target, squeeze=squeeze, **kwargs)
-        self = self.dropField(field=temp_field)
+            self = self.transferFlags(field, target, squeeze=squeeze, **kwargs)
         if drop:
             return self.dropField(field=field)
 
