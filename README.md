@@ -59,13 +59,13 @@ An example configuration file can be found [here](https://git.ufz.de/rdm-softwar
 
 ```
 varname    ; test
-#----------; ---------------------------------------------------------------------
+#----------; -----------------------------------------------------
 SM2        ; align(freq="15Min")
 'SM(1|2)+' ; flagNAN()
 SM1        ; flagRange(min=10, max=60)
 SM2        ; flagRange(min=10, max=40)
-SM2        ; flagZScore(window="30d", thresh=3.5, method='modified', center=False)
-Dummy      ; flagGeneric(field=["SM1", "SM2"], func=(isflagged(x) | isflagged(y)))
+SM2        ; flagUniLOF(n=20, thresh=1.5)
+SM_mean    ; processGeneric(field=["SM1", "SM2"], func=(x + y)/2)
 ```
 
 As soon as the basic inputs, dataset and configuration file, are
@@ -85,7 +85,7 @@ saqc \
     --outfile saqc_test.csv
 ```
 
-### SaQC as a python module
+### Saqc as a python module
 
 When used as a Python module, SaQC provides a consistent and simple API for programmatic access. This makes it straightforward
 to define, execute, and customize quality control routines directly within Python, and to integrate SaQC into data analysis workflows and scripts.
@@ -106,8 +106,10 @@ qc = (qc
       .flagNAN(field=["SM1", "SM2"])
       .flagRange(field="SM1", min=10, max=60)
       .flagRange(field="SM2", min=10, max=40)
-      .flagZScore("SM2", window="30d", thresh=3.5, method='modified', center=False)
-      .flagGeneric(field=["SM1", "SM2"], target="Dummy", func=lambda x, y: (isflagged(x) | isflagged(y))))
+      .flagUniLOF("SM2", n=20, thresh=1.5)
+      .processGeneric(
+          field=["SM1", "SM2"], target="SM_mean",
+          func=lambda x, y: (x + y)/2))
 ```
 
 A more detailed description of the Python API is available in the
